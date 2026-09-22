@@ -1,3 +1,7 @@
+[submodule "Maya-ACE"]
+	path = Maya-ACE
+	url = https://github.com/NVIDIA/Maya-ACE.git
+	branch = release/2.0
 [submodule "Audio2Face-3D-SDK"]
 	path = Audio2Face-3D-SDK
 	url = https://github.com/NVIDIA/Audio2Face-3D-SDK.git
@@ -6,7 +10,3 @@
 	path = Audio2Face-3D-Samples
 	url = https://github.com/NVIDIA/Audio2Face-3D-Samples.git
 	branch = main
-[submodule "Maya-ACE"]
-	path = Maya-ACE
-	url = https://github.com/NVIDIA/Maya-ACE.git
-	branch = release/2.0

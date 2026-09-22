@@ -5,6 +5,8 @@ https://github.com/NVIDIA/Audio2Face-3D-SDK
   
 https://github.com/NVIDIA/Audio2Face-3D-Samples  
   
+https://github.com/NVIDIA/Maya-ACE  
+  
 模型文件  
   
 通过网盘分享的文件：Audio2Emotion-v2.2等2个文件  
