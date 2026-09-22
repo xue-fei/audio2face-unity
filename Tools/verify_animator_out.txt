@@ -1,0 +1,25 @@
+identity=Mark  顶点=24002  分量=72006
+neutral_skin    mean|v|=54.2702 rms=88.8777
+eyeClose delta  rms=0.05540
+lipOpen  delta  rms=0.46198
+
+=== faceMaskLower ===
+  neutral Y: min=135.476 max=170.646 span=35.171
+  mask: min=0.000000 max=1.000000 mean=0.6174
+  下半脸(mask>0.5)=14919 顶点 (62.2%)   上半脸=9083 (37.8%)
+  过渡带(0.05<mask<0.95)=2290 顶点
+  分割阈值位于 Y 的 60.0% 高度处（faceMaskLevel=0.60）
+
+=== 以某个 blendshape delta 当 prediction，看 animator 前后 ===
+  pose                    输入RMS      输出RMS       放大
+  jawOpen               0.38307    0.48090    1.255
+  mouthClose            0.07431    0.09808    1.320
+  mouthPucker           0.21166    0.27953    1.321
+  browInnerUp           0.06126    0.06387    1.043
+  eyeBlinkLeft          0.03775    0.04000    1.060
+  cheekPuff             0.15489    0.20862    1.347
+
+=== 静音(prediction=0) 时 animator 自身注入的偏置 ===
+  -0.06*eyeClose + (-0.03)*lipOpen  → RMS=0.01425
+  经上下脸加权后                     → RMS=0.01832
+  参考 jawOpen delta RMS=0.38307  → 静态偏置相当于 4.8% jawOpen

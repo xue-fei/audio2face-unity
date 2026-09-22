@@ -1,0 +1,71 @@
+﻿=== bs ===
+  neutral: shape=(24002, 3) dtype=float32 size=72006
+  eyeBlinkLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookDownLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookInLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookOutLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookUpLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeSquintLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeWideLeft: shape=(24002, 3) dtype=float32 size=72006
+  eyeBlinkRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookDownRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookInRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookOutRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeLookUpRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeSquintRight: shape=(24002, 3) dtype=float32 size=72006
+  eyeWideRight: shape=(24002, 3) dtype=float32 size=72006
+  jawForward: shape=(24002, 3) dtype=float32 size=72006
+  jawLeft: shape=(24002, 3) dtype=float32 size=72006
+  jawRight: shape=(24002, 3) dtype=float32 size=72006
+  jawOpen: shape=(24002, 3) dtype=float32 size=72006
+  mouthClose: shape=(24002, 3) dtype=float32 size=72006
+  mouthFunnel: shape=(24002, 3) dtype=float32 size=72006
+  mouthPucker: shape=(24002, 3) dtype=float32 size=72006
+  mouthLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthSmileLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthSmileRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthFrownLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthFrownRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthDimpleLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthDimpleRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthStretchLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthStretchRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthRollLower: shape=(24002, 3) dtype=float32 size=72006
+  mouthRollUpper: shape=(24002, 3) dtype=float32 size=72006
+  mouthShrugLower: shape=(24002, 3) dtype=float32 size=72006
+  mouthShrugUpper: shape=(24002, 3) dtype=float32 size=72006
+  mouthPressLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthPressRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthLowerDownLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthLowerDownRight: shape=(24002, 3) dtype=float32 size=72006
+  mouthUpperUpLeft: shape=(24002, 3) dtype=float32 size=72006
+  mouthUpperUpRight: shape=(24002, 3) dtype=float32 size=72006
+  browDownLeft: shape=(24002, 3) dtype=float32 size=72006
+  browDownRight: shape=(24002, 3) dtype=float32 size=72006
+  browInnerUp: shape=(24002, 3) dtype=float32 size=72006
+  browOuterUpLeft: shape=(24002, 3) dtype=float32 size=72006
+  browOuterUpRight: shape=(24002, 3) dtype=float32 size=72006
+  cheekPuff: shape=(24002, 3) dtype=float32 size=72006
+  cheekSquintLeft: shape=(24002, 3) dtype=float32 size=72006
+  cheekSquintRight: shape=(24002, 3) dtype=float32 size=72006
+  noseSneerLeft: shape=(24002, 3) dtype=float32 size=72006
+  noseSneerRight: shape=(24002, 3) dtype=float32 size=72006
+  tongueOut: shape=(24002, 3) dtype=float32 size=72006
+  poseNames: shape=(53,) dtype=|S19 size=53
+  frontalMask: shape=(4262,) dtype=int32 size=4262
+  rig_version: shape=() dtype=|S4 size=1
+=== md ===
+  neutral_jaw: shape=(5, 3) dtype=float32 size=15
+  neutral_skin: shape=(24002, 3) dtype=float32 size=72006
+  neutral_tongue: shape=(5602, 3) dtype=float32 size=16806
+  lip_open_pose_delta: shape=(24002, 3) dtype=float32 size=72006
+  eye_close_pose_delta: shape=(24002, 3) dtype=float32 size=72006
+  saccade_rot_matrix: shape=(5000, 2) dtype=float32 size=10000
+
+=== 关键数值 ===
+bs neutral shape: (24002, 3) size: 72006
+bs neutral 展平长度: 72006
+md neutral_skin shape: (24002, 3) size: 72006
+md neutral_skin 展平长度: 72006
+frontalMask shape: (4262,) max: 22004 min: 11

@@ -1,0 +1,15 @@
+﻿=== 真实语音 vs 静音 模型响应实验 ===
+input names: window [['window_dynamic_axes_1', 16000], ['identity_dynamic_axes_1', 3], ['emotion_dynamic_axes_1', 30, 10], [2, 2, 'input_latents_dynamic_axes_1', 256], ['noise_dynamic_axes_1', 3, 60, 88831]]
+音频: G:\MyProject\audio2face-unity\Audio2Face-3D-Samples\example_audio\Mark_neutral.wav
+  长度=78430 采样  RMS=0.1241
+
+--- 静音 ---
+  中心帧 skin RMS=0.1086 max=0.9394
+--- 真实语音 (Mark_neutral, ×1.3) ---
+  中心帧 skin RMS=0.1908 max=2.0084
+
+--- 差异 ---
+  中心帧 skin 段 diff RMS=0.1766
+  prediction 全量 diff RMS=0.1131
+
+结论: 语音/静音 skin RMS 比 = 1.7565  (应该明显 >1 才对)

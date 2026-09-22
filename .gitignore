@@ -1,0 +1,15 @@
+
+Library
+Logs
+Temp
+*.dwlt
+.vsconfig
+*.sln
+Assets/StreamingAssets/Audio2Emotion-v2.2
+*.csproj
+.vs
+obj
+Assets/StreamingAssets/nvidiaAudio2Face-3D-v3.0
+Recordings
+Audio2Face-3D-SDK
+Audio2Face-3D-Samples

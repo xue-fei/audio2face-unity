@@ -1,0 +1,27 @@
+=== model_data_Mark.npz ===
+  eye_close_pose_delta         shape=(24002, 3) dtype=float32  |mean|=0.013115
+  lip_open_pose_delta          shape=(24002, 3) dtype=float32  |mean|=0.18042
+  neutral_jaw                  shape=(5, 3) dtype=float32  |mean|=52.228
+  neutral_skin                 shape=(24002, 3) dtype=float32  |mean|=54.27
+  neutral_tongue               shape=(5602, 3) dtype=float32  |mean|=51.769
+  saccade_rot_matrix           shape=(5000, 2) dtype=float32  |mean|=0.89869
+
+=== bs_skin_Mark.npz (部分) ===
+  neutral                      shape=(24002, 3) |mean|=54.268
+  frontalMask                  shape=(4262,) |mean|=10795
+  poseNames                    ['neutral', 'eyeBlinkLeft', 'eyeLookDownLeft', 'eyeLookInLeft', 'eyeLookOutLeft']
+  jawOpen                      shape=(24002, 3) |mean|=0.15572
+  eyeBlinkLeft                 shape=(24002, 3) |mean|=0.0060489
+
+=== model_data 全量键（含形状）已在上方；与 bs neutral 同元素数: ['neutral_skin', 'lip_open_pose_delta', 'eye_close_pose_delta'] ===
+=== model_data 所有数组（形状 + RMS） ===
+  eye_close_pose_delta         n=72006 RMS=0.05540 |mean|=0.01312
+  lip_open_pose_delta          n=72006 RMS=0.46198 |mean|=0.18042
+  neutral_jaw                  n=15 RMS=87.59341 |mean|=52.22767
+  neutral_skin                 n=72006 RMS=88.87766 |mean|=54.27016
+  neutral_tongue               n=16806 RMS=87.88847 |mean|=51.76884
+  saccade_rot_matrix           n=10000 RMS=1.15944 |mean|=0.89869
+  bs neutral: |v| mean=54.2683  masked RMS=90.12873
+  vs neutral_skin             diff: RMS=0.10338  masked RMS=0.09565  max=0.8900
+  vs lip_open_pose_delta      diff: RMS=89.06021  masked RMS=90.50292  max=170.6460
+  vs eye_close_pose_delta     diff: RMS=88.89883  masked RMS=90.14693  max=170.6460

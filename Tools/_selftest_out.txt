@@ -1,0 +1,18 @@
+﻿=== 自检1: 单个 pose delta 还原 ===
+  jawOpen: 最大权重 pose 及值:
+      jawOpen = 0.9992
+      mouthRollLower = 0.0177
+      mouthFrownRight = 0.0022
+  mouthClose: 最大权重 pose 及值:
+      mouthClose = 0.9532
+      mouthRollLower = 0.0305
+      mouthPressRight = 0.0235
+  mouthSmileLeft: 最大权重 pose 及值:
+      mouthStretchLeft = 1.0000
+      mouthStretchRight = 0.9629
+      mouthShrugLower = 0.6207
+=== 自检2: 全零 delta ===
+  最大权重 = 0.000000 (应接近 0)
+=== 自检3: 简单投影 vs BVLS (jawOpen) ===
+  简单投影 jawOpen = 1.0000
+  BVLS jawOpen = 0.9992

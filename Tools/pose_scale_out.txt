@@ -1,0 +1,16 @@
+neutral 顶点数=24002  包围盒对角线=53.189
+
+poseNames 数量=0
+pose                 w=1 中位    w=1 max   w=0.1 中位   占包围盒%(w=0.1 中位)
+------------------------------------------------------------------------------
+jawOpen           (缺失)
+mouthClose        (缺失)
+mouthPucker       (缺失)
+mouthSmileLeft    (缺失)
+mouthFunnel       (缺失)
+cheekPuff         (缺失)
+browInnerUp       (缺失)
+eyeBlinkLeft      (缺失)
+
+=== 参照：Probe 实测的量级 ===
+  静息脸 jawOpen 基线      ≈ 0.080  → 中位位移 0.0000 (0.000% 包围盒)

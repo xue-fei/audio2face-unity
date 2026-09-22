@@ -1,0 +1,19 @@
+﻿=== 场景 A：滑动窗口流式（正常） ===
+  窗口#0 (滑动): jawOpen=+0.0522
+  窗口#1 (滑动): jawOpen=-0.0760
+  窗口#2 (滑动): jawOpen=+0.0270
+  窗口#3 (滑动): jawOpen=+0.1546
+  窗口#4 (滑动): jawOpen=-0.1569
+  窗口#5 (滑动): jawOpen=+0.2519
+
+=== 场景 B：冻结同一窗口反复推理（Unity 疑似） ===
+  帧#0 (冻结): jawOpen=+0.0189  gruRMS=0.3141
+  帧#1 (冻结): jawOpen=+0.0192  gruRMS=0.3138
+  帧#2 (冻结): jawOpen=+0.0177  gruRMS=0.3138
+  帧#3 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#4 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#5 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#6 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#7 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#8 (冻结): jawOpen=+0.0174  gruRMS=0.3138
+  帧#9 (冻结): jawOpen=+0.0174  gruRMS=0.3138

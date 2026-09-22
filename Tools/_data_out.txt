@@ -1,0 +1,43 @@
+﻿neutral_skin: (24002, 3) dtype float32
+bs_neutral: (24002, 3) dtype float32
+
+diff 统计: max=0.890041 mean=0.063188 中位数=0.035676
+diff > 0.1 的顶点数: 16050 / 24002
+diff > 0.5 的顶点数: 268 / 24002
+
+前 5 个顶点 (neutral_skin vs bs_neutral):
+  v0: skin=[[-3.1758699e-01  1.4938631e+02 -1.0814054e+01]
+ [-4.6177000e-02  1.6970193e+02  1.5393270e+00]
+ [-4.1273002e-02  1.7047633e+02 -1.7857810e+00]]  bs=[[-3.1759664e-01  1.4938614e+02 -1.0814106e+01]
+ [-5.5621922e-02  1.6970807e+02  1.7884252e+00]
+ [-3.7001811e-02  1.7054759e+02 -1.6574380e+00]]  diff=0.2491
+  v1: skin=[[ 1.4394000e-02  1.7058064e+02 -5.6199059e+00]
+ [ 5.9471000e-02  1.6353340e+02 -1.3419204e+01]
+ [-4.3749999e-02  1.5779126e+02 -1.2987913e+01]]  bs=[[ 1.3740705e-02  1.7058066e+02 -5.6168585e+00]
+ [ 5.9470683e-02  1.6353340e+02 -1.3419204e+01]
+ [-4.3750264e-02  1.5779126e+02 -1.2987914e+01]]  diff=0.0030
+  v2: skin=[[ 4.1347999e-02  1.6067581e+02 -1.3645498e+01]
+ [-1.9542700e-01  1.5409132e+02 -1.1279491e+01]
+ [-2.3356000e-01  1.5273828e+02 -1.0860786e+01]]  bs=[[ 4.1347887e-02  1.6067581e+02 -1.3645499e+01]
+ [-1.9543125e-01  1.5409137e+02 -1.1279629e+01]
+ [-2.3416582e-01  1.5273666e+02 -1.0861204e+01]]  diff=0.0016
+  v3: skin=[[-2.8589901e-01  1.5114819e+02 -1.0654089e+01]
+ [-1.2864500e-01  1.5567230e+02 -1.1997260e+01]
+ [-1.2055400e-01  1.5291409e+02  6.7761970e+00]]  bs=[[-2.8608555e-01  1.5114771e+02 -1.0654290e+01]
+ [-1.2864532e-01  1.5567230e+02 -1.1997261e+01]
+ [-9.9095672e-02  1.5301291e+02  6.6235356e+00]]  diff=0.1527
+  v4: skin=[[-1.3478699e-01  1.5257970e+02  6.3009868e+00]
+ [-1.2523299e-01  1.5253902e+02  6.0787959e+00]
+ [-1.5134400e-01  1.5211810e+02  6.4115701e+00]]  bs=[[-1.1980080e-01  1.5269733e+02  6.1375346e+00]
+ [-1.3481838e-01  1.5258113e+02  6.1989861e+00]
+ [-1.7505348e-01  1.5213998e+02  6.4097781e+00]]  diff=0.1635
+
+frontalMask: shape=(4262,) dtype=int32
+frontalMask 前 20: [ 11  13  14  17  19  21  32  33  34  35  38  39  40  41  42  46 157 159
+ 162 163]
+frontalMask max: 22004 min: 11
+
+bs_skin keys: ['neutral', 'eyeBlinkLeft', 'eyeLookDownLeft', 'eyeLookInLeft', 'eyeLookOutLeft', 'eyeLookUpLeft', 'eyeSquintLeft', 'eyeWideLeft', 'eyeBlinkRight', 'eyeLookDownRight', 'eyeLookInRight', 'eyeLookOutRight', 'eyeLookUpRight', 'eyeSquintRight', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawRight', 'jawOpen', 'mouthClose', 'mouthFunnel', 'mouthPucker', 'mouthLeft', 'mouthRight', 'mouthSmileLeft', 'mouthSmileRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthStretchLeft', 'mouthStretchRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper', 'mouthPressLeft', 'mouthPressRight', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 'noseSneerLeft', 'noseSneerRight', 'tongueOut', 'poseNames', 'frontalMask', 'rig_version']
+
+neutral 长度 = 24002
+pose eyeBlinkLeft 长度 = 24002

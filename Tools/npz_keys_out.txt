@@ -1,0 +1,277 @@
+npz 文件: ['bs_skin_Claire.npz', 'bs_skin_James.npz', 'bs_skin_Mark.npz', 'bs_tongue_Claire.npz', 'bs_tongue_James.npz', 'bs_tongue_Mark.npz', 'model_data_Claire.npz', 'model_data_James.npz', 'model_data_Mark.npz']
+
+======================================================================
+=== bs_skin_Claire.npz ===
+  browDownLeft                 shape=(24002, 3)           dtype=float32  min=-1.5587 max=+0.7902 mean=-0.00600 rms=0.09398
+  browDownRight                shape=(24002, 3)           dtype=float32  min=-1.2823 max=+1.0568 mean=+0.00188 rms=0.08529
+  browInnerUp                  shape=(24002, 3)           dtype=float32  min=-0.3913 max=+1.0855 mean=+0.00564 rms=0.06382
+  browOuterUpLeft              shape=(24002, 3)           dtype=float32  min=-0.5427 max=+1.1252 mean=+0.00510 rms=0.06624
+  browOuterUpRight             shape=(24002, 3)           dtype=float32  min=-0.7794 max=+1.0781 mean=-0.00049 rms=0.06852
+  cheekPuff                    shape=(24002, 3)           dtype=float32  min=-0.7030 max=+1.0025 mean=+0.01749 rms=0.17418
+  cheekSquintLeft              shape=(24002, 3)           dtype=float32  min=-0.1183 max=+0.7656 mean=+0.00595 rms=0.04095
+  cheekSquintRight             shape=(24002, 3)           dtype=float32  min=-0.0784 max=+0.5492 mean=+0.00576 rms=0.03609
+  eyeBlinkLeft                 shape=(24002, 3)           dtype=float32  min=-1.0901 max=+0.2072 mean=-0.00520 rms=0.04524
+  eyeBlinkRight                shape=(24002, 3)           dtype=float32  min=-1.1055 max=+0.4388 mean=+0.00014 rms=0.04481
+  eyeLookDownLeft              shape=(24002, 3)           dtype=float32  min=-1.0551 max=+0.2975 mean=-0.00557 rms=0.04447
+  eyeLookDownRight             shape=(24002, 3)           dtype=float32  min=-1.0740 max=+0.3237 mean=-0.00491 rms=0.04368
+  eyeLookInLeft                shape=(24002, 3)           dtype=float32  min=-0.2744 max=+0.2074 mean=-0.00231 rms=0.02535
+  eyeLookInRight               shape=(24002, 3)           dtype=float32  min=-0.1348 max=+0.2756 mean=+0.00250 rms=0.02455
+  eyeLookOutLeft               shape=(24002, 3)           dtype=float32  min=-0.2645 max=+0.2715 mean=+0.00199 rms=0.02453
+  eyeLookOutRight              shape=(24002, 3)           dtype=float32  min=-0.2741 max=+0.1161 mean=-0.00258 rms=0.02449
+  eyeLookUpLeft                shape=(24002, 3)           dtype=float32  min=-0.1132 max=+0.4234 mean=+0.00241 rms=0.01990
+  eyeLookUpRight               shape=(24002, 3)           dtype=float32  min=-0.1281 max=+0.4098 mean=+0.00206 rms=0.01887
+  eyeSquintLeft                shape=(24002, 3)           dtype=float32  min=-0.1811 max=+0.1442 mean=+0.00056 rms=0.01248
+  eyeSquintRight               shape=(24002, 3)           dtype=float32  min=-0.1804 max=+0.1703 mean=+0.00051 rms=0.01122
+  eyeWideLeft                  shape=(24002, 3)           dtype=float32  min=-0.1915 max=+0.3741 mean=+0.00155 rms=0.01759
+  eyeWideRight                 shape=(24002, 3)           dtype=float32  min=-0.1610 max=+0.3975 mean=+0.00094 rms=0.01835
+  frontalMask                  shape=(4262,)              dtype=int32    min=11 max=22004
+  jawForward                   shape=(24002, 3)           dtype=float32  min=-0.4592 max=+1.3215 mean=+0.04977 rms=0.21532
+  jawLeft                      shape=(24002, 3)           dtype=float32  min=-0.1206 max=+1.0650 mean=+0.05030 rms=0.17872
+  jawOpen                      shape=(24002, 3)           dtype=float32  min=-3.0018 max=+0.6081 mean=-0.18120 rms=0.50861
+  jawRight                     shape=(24002, 3)           dtype=float32  min=-1.0643 max=+0.2222 mean=-0.04353 rms=0.17953
+  mouthClose                   shape=(24002, 3)           dtype=float32  min=-0.9710 max=+0.1550 mean=-0.09486 rms=0.21770
+  mouthDimpleLeft              shape=(24002, 3)           dtype=float32  min=-0.9008 max=+1.0763 mean=+0.00946 rms=0.11498
+  mouthDimpleRight             shape=(24002, 3)           dtype=float32  min=-1.1408 max=+0.3600 mean=-0.01976 rms=0.12869
+  mouthFrownLeft               shape=(24002, 3)           dtype=float32  min=-0.8453 max=+0.7888 mean=-0.00847 rms=0.09417
+  mouthFrownRight              shape=(24002, 3)           dtype=float32  min=-1.0119 max=+0.1960 mean=-0.01427 rms=0.10139
+  mouthFunnel                  shape=(24002, 3)           dtype=float32  min=-1.1466 max=+0.7268 mean=-0.00665 rms=0.13706
+  mouthLeft                    shape=(24002, 3)           dtype=float32  min=-0.6980 max=+2.1115 mean=+0.09727 rms=0.34308
+  mouthLowerDownLeft           shape=(24002, 3)           dtype=float32  min=-1.4933 max=+1.1876 mean=-0.00541 rms=0.12385
+  mouthLowerDownRight          shape=(24002, 3)           dtype=float32  min=-1.7207 max=+0.5470 mean=-0.02239 rms=0.13533
+  mouthPressLeft               shape=(24002, 3)           dtype=float32  min=-0.9412 max=+0.6475 mean=-0.01148 rms=0.10375
+  mouthPressRight              shape=(24002, 3)           dtype=float32  min=-1.0481 max=+0.2652 mean=-0.02728 rms=0.11911
+  mouthPucker                  shape=(24002, 3)           dtype=float32  min=-0.8518 max=+1.7637 mean=+0.07785 rms=0.28648
+  mouthRight                   shape=(24002, 3)           dtype=float32  min=-2.1465 max=+1.1814 mean=-0.05628 rms=0.34253
+  mouthRollLower               shape=(24002, 3)           dtype=float32  min=-0.7765 max=+0.4046 mean=-0.01872 rms=0.10780
+  mouthRollUpper               shape=(24002, 3)           dtype=float32  min=-0.6844 max=+0.4204 mean=-0.01571 rms=0.07761
+  mouthShrugLower              shape=(24002, 3)           dtype=float32  min=-0.3888 max=+0.6050 mean=+0.02286 rms=0.09791
+  mouthShrugUpper              shape=(24002, 3)           dtype=float32  min=-0.3333 max=+0.3257 mean=+0.00910 rms=0.05204
+  mouthSmileLeft               shape=(24002, 3)           dtype=float32  min=-0.6621 max=+0.9085 mean=+0.02934 rms=0.14898
+  mouthSmileRight              shape=(24002, 3)           dtype=float32  min=-0.5942 max=+0.9921 mean=+0.01394 rms=0.14704
+  mouthStretchLeft             shape=(24002, 3)           dtype=float32  min=-0.8775 max=+0.6345 mean=+0.00239 rms=0.13858
+  mouthStretchRight            shape=(24002, 3)           dtype=float32  min=-0.8669 max=+0.5946 mean=-0.02269 rms=0.15000
+  mouthUpperUpLeft             shape=(24002, 3)           dtype=float32  min=-1.2434 max=+0.9955 mean=+0.00630 rms=0.10205
+  mouthUpperUpRight            shape=(24002, 3)           dtype=float32  min=-1.3984 max=+0.8381 mean=-0.00917 rms=0.12033
+  neutral                      shape=(24002, 3)           dtype=float32  min=-15.6846 max=+157.9266 mean=+46.73364 rms=82.03496
+  noseSneerLeft                shape=(24002, 3)           dtype=float32  min=-0.9394 max=+0.9182 mean=+0.01529 rms=0.12367
+  noseSneerRight               shape=(24002, 3)           dtype=float32  min=-0.9444 max=+0.8853 mean=-0.00240 rms=0.12228
+  poseNames                    shape=(53,)                dtype=|S19     sample=[b'neutral' b'eyeBlinkLeft' b'eyeLookDownLeft' b'eyeLookInLeft'
+ b'eyeLookOutLeft' b'eyeLookUpLeft' b'eyeSquintLeft' b'eyeWideLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v3.6']
+  tongueOut                    shape=(24002, 3)           dtype=float32  min=-0.0000 max=+0.0000 mean=+0.00000 rms=0.00000
+
+======================================================================
+=== bs_skin_James.npz ===
+  browDownLeft                 shape=(24002, 3)           dtype=float32  min=-0.9409 max=+0.6605 mean=-0.00409 rms=0.07421
+  browDownRight                shape=(24002, 3)           dtype=float32  min=-0.7126 max=+1.0950 mean=+0.00507 rms=0.07385
+  browInnerUp                  shape=(24002, 3)           dtype=float32  min=-0.2508 max=+0.7785 mean=+0.00463 rms=0.04085
+  browOuterUpLeft              shape=(24002, 3)           dtype=float32  min=-0.4087 max=+0.7673 mean=+0.00302 rms=0.04534
+  browOuterUpRight             shape=(24002, 3)           dtype=float32  min=-0.5747 max=+0.7665 mean=-0.00056 rms=0.05215
+  cheekPuff                    shape=(24002, 3)           dtype=float32  min=-0.5872 max=+1.0290 mean=+0.01372 rms=0.15486
+  cheekSquintLeft              shape=(24002, 3)           dtype=float32  min=-0.1535 max=+0.6876 mean=+0.01017 rms=0.05622
+  cheekSquintRight             shape=(24002, 3)           dtype=float32  min=-0.1286 max=+0.6863 mean=+0.01064 rms=0.05856
+  eyeBlinkLeft                 shape=(24002, 3)           dtype=float32  min=-0.9631 max=+0.1715 mean=-0.00503 rms=0.04244
+  eyeBlinkRight                shape=(24002, 3)           dtype=float32  min=-1.0208 max=+0.4096 mean=+0.00000 rms=0.04275
+  eyeLookDownLeft              shape=(24002, 3)           dtype=float32  min=-0.9578 max=+0.1234 mean=-0.00533 rms=0.04053
+  eyeLookDownRight             shape=(24002, 3)           dtype=float32  min=-0.9646 max=+0.1172 mean=-0.00486 rms=0.04029
+  eyeLookInLeft                shape=(24002, 3)           dtype=float32  min=-0.2380 max=+0.1714 mean=-0.00202 rms=0.02164
+  eyeLookInRight               shape=(24002, 3)           dtype=float32  min=-0.1092 max=+0.2403 mean=+0.00217 rms=0.02098
+  eyeLookOutLeft               shape=(24002, 3)           dtype=float32  min=-0.2149 max=+0.2320 mean=+0.00179 rms=0.02073
+  eyeLookOutRight              shape=(24002, 3)           dtype=float32  min=-0.2337 max=+0.1254 mean=-0.00216 rms=0.02058
+  eyeLookUpLeft                shape=(24002, 3)           dtype=float32  min=-0.0678 max=+0.3808 mean=+0.00231 rms=0.01813
+  eyeLookUpRight               shape=(24002, 3)           dtype=float32  min=-0.0784 max=+0.3707 mean=+0.00207 rms=0.01762
+  eyeSquintLeft                shape=(24002, 3)           dtype=float32  min=-0.0923 max=+0.1595 mean=+0.00029 rms=0.01149
+  eyeSquintRight               shape=(24002, 3)           dtype=float32  min=-0.0823 max=+0.1763 mean=-0.00002 rms=0.00964
+  eyeWideLeft                  shape=(24002, 3)           dtype=float32  min=-0.1363 max=+0.3398 mean=+0.00149 rms=0.01566
+  eyeWideRight                 shape=(24002, 3)           dtype=float32  min=-0.1342 max=+0.3527 mean=+0.00095 rms=0.01624
+  frontalMask                  shape=(4262,)              dtype=int32    min=11 max=22004
+  jawForward                   shape=(24002, 3)           dtype=float32  min=-0.4051 max=+1.0865 mean=+0.03996 rms=0.18229
+  jawLeft                      shape=(24002, 3)           dtype=float32  min=-0.0812 max=+0.9411 mean=+0.04699 rms=0.16210
+  jawOpen                      shape=(24002, 3)           dtype=float32  min=-3.6556 max=+0.4056 mean=-0.27847 rms=0.65501
+  jawRight                     shape=(24002, 3)           dtype=float32  min=-0.9413 max=+0.1833 mean=-0.04064 rms=0.16238
+  mouthClose                   shape=(24002, 3)           dtype=float32  min=-1.3857 max=+0.3708 mean=-0.14841 rms=0.33503
+  mouthDimpleLeft              shape=(24002, 3)           dtype=float32  min=-0.5408 max=+0.6827 mean=+0.00803 rms=0.07900
+  mouthDimpleRight             shape=(24002, 3)           dtype=float32  min=-0.5464 max=+0.6511 mean=-0.00112 rms=0.08042
+  mouthFrownLeft               shape=(24002, 3)           dtype=float32  min=-0.8201 max=+0.3832 mean=-0.00918 rms=0.07774
+  mouthFrownRight              shape=(24002, 3)           dtype=float32  min=-0.9388 max=+0.2656 mean=-0.01559 rms=0.08247
+  mouthFunnel                  shape=(24002, 3)           dtype=float32  min=-0.9013 max=+0.9499 mean=+0.00942 rms=0.15361
+  mouthLeft                    shape=(24002, 3)           dtype=float32  min=-0.8243 max=+2.7659 mean=+0.17594 rms=0.51052
+  mouthLowerDownLeft           shape=(24002, 3)           dtype=float32  min=-0.6261 max=+0.5494 mean=+0.00625 rms=0.07253
+  mouthLowerDownRight          shape=(24002, 3)           dtype=float32  min=-0.6062 max=+0.4338 mean=-0.00257 rms=0.07212
+  mouthPressLeft               shape=(24002, 3)           dtype=float32  min=-0.2671 max=+0.3745 mean=-0.00998 rms=0.04188
+  mouthPressRight              shape=(24002, 3)           dtype=float32  min=-0.2854 max=+0.4771 mean=-0.00817 rms=0.06107
+  mouthPucker                  shape=(24002, 3)           dtype=float32  min=-1.0432 max=+1.6845 mean=+0.03761 rms=0.35934
+  mouthRight                   shape=(24002, 3)           dtype=float32  min=-2.0557 max=+1.3292 mean=-0.03301 rms=0.39199
+  mouthRollLower               shape=(24002, 3)           dtype=float32  min=-0.6331 max=+0.8867 mean=-0.00765 rms=0.10673
+  mouthRollUpper               shape=(24002, 3)           dtype=float32  min=-0.7325 max=+0.1908 mean=-0.01358 rms=0.08998
+  mouthShrugLower              shape=(24002, 3)           dtype=float32  min=-0.4467 max=+1.0968 mean=+0.01543 rms=0.12782
+  mouthShrugUpper              shape=(24002, 3)           dtype=float32  min=-0.4157 max=+0.8196 mean=+0.01522 rms=0.11046
+  mouthSmileLeft               shape=(24002, 3)           dtype=float32  min=-0.5989 max=+0.5253 mean=+0.00298 rms=0.11708
+  mouthSmileRight              shape=(24002, 3)           dtype=float32  min=-0.6741 max=+0.5673 mean=-0.01285 rms=0.13226
+  mouthStretchLeft             shape=(24002, 3)           dtype=float32  min=-0.3927 max=+0.3732 mean=+0.00238 rms=0.06966
+  mouthStretchRight            shape=(24002, 3)           dtype=float32  min=-0.4293 max=+0.4245 mean=-0.00245 rms=0.08331
+  mouthUpperUpLeft             shape=(24002, 3)           dtype=float32  min=-0.5736 max=+0.9724 mean=+0.01361 rms=0.09264
+  mouthUpperUpRight            shape=(24002, 3)           dtype=float32  min=-0.5588 max=+1.1217 mean=+0.00375 rms=0.10132
+  neutral                      shape=(24002, 3)           dtype=float32  min=-16.6832 max=+186.4109 mean=+56.39900 rms=97.94785
+  noseSneerLeft                shape=(24002, 3)           dtype=float32  min=-0.7304 max=+0.4333 mean=-0.00861 rms=0.07241
+  noseSneerRight               shape=(24002, 3)           dtype=float32  min=-0.7239 max=+0.5013 mean=-0.00856 rms=0.07523
+  poseNames                    shape=(53,)                dtype=|S19     sample=[b'neutral' b'eyeBlinkLeft' b'eyeLookDownLeft' b'eyeLookInLeft'
+ b'eyeLookOutLeft' b'eyeLookUpLeft' b'eyeSquintLeft' b'eyeWideLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v3.2']
+  tongueOut                    shape=(24002, 3)           dtype=float32  min=-0.0000 max=+0.0000 mean=+0.00000 rms=0.00000
+
+======================================================================
+=== bs_skin_Mark.npz ===
+  browDownLeft                 shape=(24002, 3)           dtype=float32  min=-0.8672 max=+0.5441 mean=-0.00263 rms=0.04931
+  browDownRight                shape=(24002, 3)           dtype=float32  min=-0.6225 max=+0.8931 mean=+0.00252 rms=0.05045
+  browInnerUp                  shape=(24002, 3)           dtype=float32  min=-0.3117 max=+1.1628 mean=+0.00328 rms=0.06126
+  browOuterUpLeft              shape=(24002, 3)           dtype=float32  min=-0.5056 max=+0.8126 mean=+0.00389 rms=0.05527
+  browOuterUpRight             shape=(24002, 3)           dtype=float32  min=-0.6688 max=+1.0606 mean=-0.00048 rms=0.06576
+  cheekPuff                    shape=(24002, 3)           dtype=float32  min=-0.6330 max=+1.3164 mean=+0.03583 rms=0.15489
+  cheekSquintLeft              shape=(24002, 3)           dtype=float32  min=-0.0942 max=+0.4325 mean=+0.00336 rms=0.02486
+  cheekSquintRight             shape=(24002, 3)           dtype=float32  min=-0.0535 max=+0.4265 mean=+0.00342 rms=0.02426
+  eyeBlinkLeft                 shape=(24002, 3)           dtype=float32  min=-0.7995 max=+0.2985 mean=-0.00354 rms=0.03775
+  eyeBlinkRight                shape=(24002, 3)           dtype=float32  min=-0.9715 max=+0.2914 mean=-0.00117 rms=0.04195
+  eyeLookDownLeft              shape=(24002, 3)           dtype=float32  min=-0.7646 max=+0.0726 mean=-0.00477 rms=0.03636
+  eyeLookDownRight             shape=(24002, 3)           dtype=float32  min=-0.7733 max=+0.1460 mean=-0.00432 rms=0.03582
+  eyeLookInLeft                shape=(24002, 3)           dtype=float32  min=-0.2509 max=+0.1754 mean=-0.00226 rms=0.02240
+  eyeLookInRight               shape=(24002, 3)           dtype=float32  min=-0.1128 max=+0.2639 mean=+0.00225 rms=0.02202
+  eyeLookOutLeft               shape=(24002, 3)           dtype=float32  min=-0.2229 max=+0.2471 mean=+0.00195 rms=0.02137
+  eyeLookOutRight              shape=(24002, 3)           dtype=float32  min=-0.2400 max=+0.1099 mean=-0.00222 rms=0.02114
+  eyeLookUpLeft                shape=(24002, 3)           dtype=float32  min=-0.1558 max=+0.3469 mean=+0.00207 rms=0.01829
+  eyeLookUpRight               shape=(24002, 3)           dtype=float32  min=-0.2398 max=+0.3691 mean=+0.00197 rms=0.01902
+  eyeSquintLeft                shape=(24002, 3)           dtype=float32  min=-0.1875 max=+0.3391 mean=+0.00225 rms=0.02307
+  eyeSquintRight               shape=(24002, 3)           dtype=float32  min=-0.2004 max=+0.2981 mean=+0.00099 rms=0.02437
+  eyeWideLeft                  shape=(24002, 3)           dtype=float32  min=-0.1394 max=+0.3500 mean=+0.00139 rms=0.01614
+  eyeWideRight                 shape=(24002, 3)           dtype=float32  min=-0.2386 max=+0.3634 mean=+0.00104 rms=0.01745
+  frontalMask                  shape=(4262,)              dtype=int32    min=11 max=22004
+  jawForward                   shape=(24002, 3)           dtype=float32  min=-0.3840 max=+1.1023 mean=+0.04315 rms=0.18525
+  jawLeft                      shape=(24002, 3)           dtype=float32  min=-0.0860 max=+0.8910 mean=+0.04524 rms=0.15537
+  jawOpen                      shape=(24002, 3)           dtype=float32  min=-2.6156 max=+0.5643 mean=-0.14125 rms=0.38307
+  jawRight                     shape=(24002, 3)           dtype=float32  min=-0.8910 max=+0.1856 mean=-0.03950 rms=0.15607
+  mouthClose                   shape=(24002, 3)           dtype=float32  min=-0.4424 max=+0.2934 mean=-0.01332 rms=0.07431
+  mouthDimpleLeft              shape=(24002, 3)           dtype=float32  min=-0.6019 max=+0.4870 mean=+0.00473 rms=0.06484
+  mouthDimpleRight             shape=(24002, 3)           dtype=float32  min=-0.4141 max=+0.3564 mean=-0.00077 rms=0.04635
+  mouthFrownLeft               shape=(24002, 3)           dtype=float32  min=-0.3741 max=+0.4776 mean=+0.00057 rms=0.05479
+  mouthFrownRight              shape=(24002, 3)           dtype=float32  min=-0.3236 max=+0.3884 mean=+0.00293 rms=0.05026
+  mouthFunnel                  shape=(24002, 3)           dtype=float32  min=-0.8222 max=+1.2201 mean=+0.04850 rms=0.20351
+  mouthLeft                    shape=(24002, 3)           dtype=float32  min=-0.5672 max=+1.7725 mean=+0.08409 rms=0.28234
+  mouthLowerDownLeft           shape=(24002, 3)           dtype=float32  min=-1.1315 max=+0.3470 mean=-0.01099 rms=0.09145
+  mouthLowerDownRight          shape=(24002, 3)           dtype=float32  min=-1.3706 max=+0.2618 mean=-0.01819 rms=0.11195
+  mouthPressLeft               shape=(24002, 3)           dtype=float32  min=-0.3508 max=+0.7339 mean=+0.01160 rms=0.07939
+  mouthPressRight              shape=(24002, 3)           dtype=float32  min=-0.4730 max=+0.8630 mean=+0.01373 rms=0.09641
+  mouthPucker                  shape=(24002, 3)           dtype=float32  min=-0.5352 max=+1.2614 mean=+0.05275 rms=0.21166
+  mouthRight                   shape=(24002, 3)           dtype=float32  min=-1.7683 max=+0.9916 mean=-0.04569 rms=0.27780
+  mouthRollLower               shape=(24002, 3)           dtype=float32  min=-0.3473 max=+0.3581 mean=+0.00089 rms=0.04532
+  mouthRollUpper               shape=(24002, 3)           dtype=float32  min=-0.2403 max=+0.1630 mean=-0.00069 rms=0.02599
+  mouthShrugLower              shape=(24002, 3)           dtype=float32  min=-0.2224 max=+0.8741 mean=+0.03388 rms=0.12401
+  mouthShrugUpper              shape=(24002, 3)           dtype=float32  min=-0.2291 max=+0.5065 mean=+0.01541 rms=0.06699
+  mouthSmileLeft               shape=(24002, 3)           dtype=float32  min=-1.0266 max=+0.8979 mean=+0.03154 rms=0.18386
+  mouthSmileRight              shape=(24002, 3)           dtype=float32  min=-0.8530 max=+0.9933 mean=+0.00883 rms=0.16959
+  mouthStretchLeft             shape=(24002, 3)           dtype=float32  min=-0.9577 max=+0.4648 mean=-0.00299 rms=0.11190
+  mouthStretchRight            shape=(24002, 3)           dtype=float32  min=-0.6135 max=+0.2679 mean=-0.00969 rms=0.07180
+  mouthUpperUpLeft             shape=(24002, 3)           dtype=float32  min=-0.5587 max=+0.3100 mean=-0.00029 rms=0.04749
+  mouthUpperUpRight            shape=(24002, 3)           dtype=float32  min=-0.4035 max=+0.3807 mean=-0.00443 rms=0.04376
+  neutral                      shape=(24002, 3)           dtype=float32  min=-17.7233 max=+170.6460 mean=+50.99015 rms=88.89201
+  noseSneerLeft                shape=(24002, 3)           dtype=float32  min=-0.9189 max=+0.8684 mean=+0.01024 rms=0.10638
+  noseSneerRight               shape=(24002, 3)           dtype=float32  min=-0.7102 max=+0.8028 mean=+0.00672 rms=0.08915
+  poseNames                    shape=(53,)                dtype=|S19     sample=[b'neutral' b'eyeBlinkLeft' b'eyeLookDownLeft' b'eyeLookInLeft'
+ b'eyeLookOutLeft' b'eyeLookUpLeft' b'eyeSquintLeft' b'eyeWideLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v3.1']
+  tongueOut                    shape=(24002, 3)           dtype=float32  min=-0.0000 max=+0.0000 mean=+0.00000 rms=0.00000
+
+======================================================================
+=== bs_tongue_Claire.npz ===
+  neutral                      shape=(5602, 3)            dtype=float32  min=-2.2016 max=+141.5119 mean=+46.85472 rms=80.82535
+  poseNames                    shape=(17,)                dtype=|S15     sample=[b'neutral' b'tongueTipUp' b'tongueTipDown' b'tongueTipLeft'
+ b'tongueTipRight' b'tongueRollUp' b'tongueRollDown' b'tongueRollLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v1.0']
+  tongueDown                   shape=(5602, 3)            dtype=float32  min=-0.5644 max=+0.0767 mean=-0.06795 rms=0.14972
+  tongueIn                     shape=(5602, 3)            dtype=float32  min=-1.2733 max=+0.2823 mean=-0.09755 rms=0.30275
+  tongueLeft                   shape=(5602, 3)            dtype=float32  min=-1.5384 max=+2.2828 mean=+0.04662 rms=0.45663
+  tongueNarrow                 shape=(5602, 3)            dtype=float32  min=-0.1951 max=+0.2618 mean=+0.00698 rms=0.05329
+  tongueRight                  shape=(5602, 3)            dtype=float32  min=-1.5861 max=+0.8508 mean=-0.05088 rms=0.27671
+  tongueRollDown               shape=(5602, 3)            dtype=float32  min=-1.4903 max=+0.8196 mean=-0.02620 rms=0.26127
+  tongueRollLeft               shape=(5602, 3)            dtype=float32  min=-1.5371 max=+1.3269 mean=-0.01667 rms=0.28138
+  tongueRollRight              shape=(5602, 3)            dtype=float32  min=-1.1241 max=+1.4553 mean=+0.03566 rms=0.27630
+  tongueRollUp                 shape=(5602, 3)            dtype=float32  min=-1.1784 max=+2.5723 mean=+0.06873 rms=0.44975
+  tongueStretch                shape=(5602, 3)            dtype=float32  min=-0.3425 max=+3.9448 mean=+0.30527 rms=0.93322
+  tongueTipDown                shape=(5602, 3)            dtype=float32  min=-0.9314 max=+0.2897 mean=-0.02604 rms=0.14780
+  tongueTipLeft                shape=(5602, 3)            dtype=float32  min=-0.7541 max=+1.1076 mean=+0.01525 rms=0.15673
+  tongueTipRight               shape=(5602, 3)            dtype=float32  min=-1.1718 max=+0.5596 mean=-0.02756 rms=0.16066
+  tongueTipUp                  shape=(5602, 3)            dtype=float32  min=-0.5081 max=+1.2943 mean=+0.01944 rms=0.16898
+  tongueUp                     shape=(5602, 3)            dtype=float32  min=-0.5862 max=+2.5765 mean=+0.11516 rms=0.48635
+  tongueWide                   shape=(5602, 3)            dtype=float32  min=-0.2587 max=+0.2300 mean=-0.00318 rms=0.05412
+
+======================================================================
+=== bs_tongue_James.npz ===
+  neutral                      shape=(5602, 3)            dtype=float32  min=-2.2127 max=+169.2212 mean=+56.61538 rms=96.75855
+  poseNames                    shape=(17,)                dtype=|S15     sample=[b'neutral' b'tongueTipUp' b'tongueTipDown' b'tongueTipLeft'
+ b'tongueTipRight' b'tongueRollUp' b'tongueRollDown' b'tongueRollLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v1.0']
+  tongueDown                   shape=(5602, 3)            dtype=float32  min=-0.5873 max=+0.0734 mean=-0.06982 rms=0.15617
+  tongueIn                     shape=(5602, 3)            dtype=float32  min=-1.3224 max=+0.3251 mean=-0.09327 rms=0.31578
+  tongueLeft                   shape=(5602, 3)            dtype=float32  min=-1.5212 max=+2.4202 mean=+0.06162 rms=0.47628
+  tongueNarrow                 shape=(5602, 3)            dtype=float32  min=-0.2038 max=+0.2717 mean=+0.00715 rms=0.05558
+  tongueRight                  shape=(5602, 3)            dtype=float32  min=-1.6589 max=+0.8363 mean=-0.05789 rms=0.28862
+  tongueRollDown               shape=(5602, 3)            dtype=float32  min=-1.5642 max=+0.8623 mean=-0.02221 rms=0.27252
+  tongueRollLeft               shape=(5602, 3)            dtype=float32  min=-1.5690 max=+1.3803 mean=-0.02009 rms=0.29349
+  tongueRollRight              shape=(5602, 3)            dtype=float32  min=-1.1408 max=+1.4999 mean=+0.03893 rms=0.28819
+  tongueRollUp                 shape=(5602, 3)            dtype=float32  min=-1.1674 max=+2.7067 mean=+0.07168 rms=0.46911
+  tongueStretch                shape=(5602, 3)            dtype=float32  min=-0.4160 max=+4.1149 mean=+0.29100 rms=0.97339
+  tongueTipDown                shape=(5602, 3)            dtype=float32  min=-0.9906 max=+0.2980 mean=-0.02621 rms=0.15416
+  tongueTipLeft                shape=(5602, 3)            dtype=float32  min=-0.7424 max=+1.1654 mean=+0.01899 rms=0.16347
+  tongueTipRight               shape=(5602, 3)            dtype=float32  min=-1.2294 max=+0.5338 mean=-0.03130 rms=0.16758
+  tongueTipUp                  shape=(5602, 3)            dtype=float32  min=-0.5100 max=+1.3570 mean=+0.02097 rms=0.17626
+  tongueUp                     shape=(5602, 3)            dtype=float32  min=-0.5837 max=+2.6960 mean=+0.12190 rms=0.50728
+  tongueWide                   shape=(5602, 3)            dtype=float32  min=-0.2684 max=+0.2391 mean=-0.00320 rms=0.05645
+
+======================================================================
+=== bs_tongue_Mark.npz ===
+  neutral                      shape=(5602, 3)            dtype=float32  min=-2.2670 max=+153.7985 mean=+51.48052 rms=87.99925
+  poseNames                    shape=(17,)                dtype=|S15     sample=[b'neutral' b'tongueTipUp' b'tongueTipDown' b'tongueTipLeft'
+ b'tongueTipRight' b'tongueRollUp' b'tongueRollDown' b'tongueRollLeft']
+  rig_version                  shape=()                   dtype=|S4      sample=[b'v1.0']
+  tongueDown                   shape=(5602, 3)            dtype=float32  min=-0.5809 max=+0.0971 mean=-0.06385 rms=0.15198
+  tongueIn                     shape=(5602, 3)            dtype=float32  min=-1.3128 max=+0.1758 mean=-0.10032 rms=0.30732
+  tongueLeft                   shape=(5602, 3)            dtype=float32  min=-1.4563 max=+2.3565 mean=+0.05883 rms=0.46352
+  tongueNarrow                 shape=(5602, 3)            dtype=float32  min=-0.1983 max=+0.2666 mean=+0.00631 rms=0.05409
+  tongueRight                  shape=(5602, 3)            dtype=float32  min=-1.6142 max=+0.8215 mean=-0.05734 rms=0.28089
+  tongueRollDown               shape=(5602, 3)            dtype=float32  min=-1.4973 max=+0.8087 mean=-0.03048 rms=0.26522
+  tongueRollLeft               shape=(5602, 3)            dtype=float32  min=-1.5275 max=+1.3800 mean=-0.02045 rms=0.28562
+  tongueRollRight              shape=(5602, 3)            dtype=float32  min=-1.1468 max=+1.5025 mean=+0.03688 rms=0.28047
+  tongueRollUp                 shape=(5602, 3)            dtype=float32  min=-1.3708 max=+2.5356 mean=+0.06326 rms=0.45654
+  tongueStretch                shape=(5602, 3)            dtype=float32  min=-0.2789 max=+4.0180 mean=+0.31509 rms=0.94731
+  tongueTipDown                shape=(5602, 3)            dtype=float32  min=-0.9233 max=+0.3104 mean=-0.02514 rms=0.15003
+  tongueTipLeft                shape=(5602, 3)            dtype=float32  min=-0.7428 max=+1.1349 mean=+0.01814 rms=0.15909
+  tongueTipRight               shape=(5602, 3)            dtype=float32  min=-1.1976 max=+0.5400 mean=-0.03073 rms=0.16309
+  tongueTipUp                  shape=(5602, 3)            dtype=float32  min=-0.5817 max=+1.2937 mean=+0.01703 rms=0.17153
+  tongueUp                     shape=(5602, 3)            dtype=float32  min=-0.6899 max=+2.5949 mean=+0.10375 rms=0.49369
+  tongueWide                   shape=(5602, 3)            dtype=float32  min=-0.2639 max=+0.2327 mean=-0.00274 rms=0.05494
+
+======================================================================
+=== model_data_Claire.npz ===
+  eye_close_pose_delta         shape=(24002, 3)           dtype=float32  min=-0.9223 max=+0.3835 mean=-0.00449 rms=0.05540
+  lip_open_pose_delta          shape=(24002, 3)           dtype=float32  min=-3.1053 max=+1.0681 mean=-0.14201 rms=0.46198
+  neutral_jaw                  shape=(5, 3)               dtype=float32  min=-2.9077 max=+140.7311 mean=+47.16054 rms=80.84410
+  neutral_skin                 shape=(24002, 3)           dtype=float32  min=-15.6846 max=+157.9266 mean=+46.73602 rms=82.03334
+  neutral_tongue               shape=(5602, 3)            dtype=float32  min=-2.2152 max=+141.6086 mean=+46.85928 rms=80.84328
+  saccade_rot_matrix           shape=(5000, 2)            dtype=float32  min=-3.7502 max=+3.7982 mean=+0.02148 rms=1.15944
+
+======================================================================
+=== model_data_James.npz ===
+  eye_close_pose_delta         shape=(24002, 3)           dtype=float32  min=-0.9223 max=+0.3835 mean=-0.00449 rms=0.05540
+  lip_open_pose_delta          shape=(24002, 3)           dtype=float32  min=-3.1053 max=+1.0681 mean=-0.14201 rms=0.46198
+  neutral_jaw                  shape=(5, 3)               dtype=float32  min=-3.4377 max=+168.1052 mean=+57.02125 rms=96.77812
+  neutral_skin                 shape=(24002, 3)           dtype=float32  min=-16.6832 max=+186.4109 mean=+56.38676 rms=97.93955
+  neutral_tongue               shape=(5602, 3)            dtype=float32  min=-2.2102 max=+169.2276 mean=+56.63671 rms=96.76552
+  saccade_rot_matrix           shape=(5000, 2)            dtype=float32  min=-3.7502 max=+3.7982 mean=+0.02148 rms=1.15944
+
+======================================================================
+=== model_data_Mark.npz ===
+  eye_close_pose_delta         shape=(24002, 3)           dtype=float32  min=-0.9223 max=+0.3835 mean=-0.00449 rms=0.05540
+  lip_open_pose_delta          shape=(24002, 3)           dtype=float32  min=-3.1053 max=+1.0681 mean=-0.14201 rms=0.46198
+  neutral_jaw                  shape=(5, 3)               dtype=float32  min=-3.4508 max=+152.4184 mean=+51.49411 rms=87.59341
+  neutral_skin                 shape=(24002, 3)           dtype=float32  min=-17.7233 max=+170.6465 mean=+51.00455 rms=88.87765
+  neutral_tongue               shape=(5602, 3)            dtype=float32  min=-2.2673 max=+153.5897 mean=+51.38134 rms=87.88846
+  saccade_rot_matrix           shape=(5000, 2)            dtype=float32  min=-3.7502 max=+3.7982 mean=+0.02148 rms=1.15944

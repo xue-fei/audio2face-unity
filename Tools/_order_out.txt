@@ -1,0 +1,112 @@
+﻿npz poseNames (去掉 neutral, 共 52):
+   0: b'eyeBlinkLeft'
+   1: b'eyeLookDownLeft'
+   2: b'eyeLookInLeft'
+   3: b'eyeLookOutLeft'
+   4: b'eyeLookUpLeft'
+   5: b'eyeSquintLeft'
+   6: b'eyeWideLeft'
+   7: b'eyeBlinkRight'
+   8: b'eyeLookDownRight'
+   9: b'eyeLookInRight'
+  10: b'eyeLookOutRight'
+  11: b'eyeLookUpRight'
+  12: b'eyeSquintRight'
+  13: b'eyeWideRight'
+  14: b'jawForward'
+  15: b'jawLeft'
+  16: b'jawRight'
+  17: b'jawOpen'
+  18: b'mouthClose'
+  19: b'mouthFunnel'
+  20: b'mouthPucker'
+  21: b'mouthLeft'
+  22: b'mouthRight'
+  23: b'mouthSmileLeft'
+  24: b'mouthSmileRight'
+  25: b'mouthFrownLeft'
+  26: b'mouthFrownRight'
+  27: b'mouthDimpleLeft'
+  28: b'mouthDimpleRight'
+  29: b'mouthStretchLeft'
+  30: b'mouthStretchRight'
+  31: b'mouthRollLower'
+  32: b'mouthRollUpper'
+  33: b'mouthShrugLower'
+  34: b'mouthShrugUpper'
+  35: b'mouthPressLeft'
+  36: b'mouthPressRight'
+  37: b'mouthLowerDownLeft'
+  38: b'mouthLowerDownRight'
+  39: b'mouthUpperUpLeft'
+  40: b'mouthUpperUpRight'
+  41: b'browDownLeft'
+  42: b'browDownRight'
+  43: b'browInnerUp'
+  44: b'browOuterUpLeft'
+  45: b'browOuterUpRight'
+  46: b'cheekPuff'
+  47: b'cheekSquintLeft'
+  48: b'cheekSquintRight'
+  49: b'noseSneerLeft'
+  50: b'noseSneerRight'
+  51: b'tongueOut'
+
+JSON bsSolveActivePoses 长度=52
+
+逐位对照（JSON 值 → npz 顺序的 pose 名）:
+  索引 0 b'eyeBlinkLeft'      = 1
+  索引 1 b'eyeLookDownLeft'   = 0  <-- active=0
+  索引 2 b'eyeLookInLeft'     = 0  <-- active=0
+  索引 3 b'eyeLookOutLeft'    = 0  <-- active=0
+  索引 4 b'eyeLookUpLeft'     = 0  <-- active=0
+  索引 5 b'eyeSquintLeft'     = 1
+  索引 6 b'eyeWideLeft'       = 1
+  索引 7 b'eyeBlinkRight'     = 1
+  索引 8 b'eyeLookDownRight'  = 0  <-- active=0
+  索引 9 b'eyeLookInRight'    = 0  <-- active=0
+  索引10 b'eyeLookOutRight'   = 0  <-- active=0
+  索引11 b'eyeLookUpRight'    = 0  <-- active=0
+  索引12 b'eyeSquintRight'    = 1
+  索引13 b'eyeWideRight'      = 1
+  索引14 b'jawForward'        = 1
+  索引15 b'jawLeft'           = 0  <-- active=0
+  索引16 b'jawRight'          = 0  <-- active=0
+  索引17 b'jawOpen'           = 1
+  索引18 b'mouthClose'        = 1
+  索引19 b'mouthFunnel'       = 1
+  索引20 b'mouthPucker'       = 1
+  索引21 b'mouthLeft'         = 0  <-- active=0
+  索引22 b'mouthRight'        = 0  <-- active=0
+  索引23 b'mouthSmileLeft'    = 1
+  索引24 b'mouthSmileRight'   = 1
+  索引25 b'mouthFrownLeft'    = 1
+  索引26 b'mouthFrownRight'   = 1
+  索引27 b'mouthDimpleLeft'   = 1
+  索引28 b'mouthDimpleRight'  = 1
+  索引29 b'mouthStretchLeft'  = 1
+  索引30 b'mouthStretchRight' = 1
+  索引31 b'mouthRollLower'    = 1
+  索引32 b'mouthRollUpper'    = 1
+  索引33 b'mouthShrugLower'   = 1
+  索引34 b'mouthShrugUpper'   = 1
+  索引35 b'mouthPressLeft'    = 1
+  索引36 b'mouthPressRight'   = 1
+  索引37 b'mouthLowerDownLeft' = 1
+  索引38 b'mouthLowerDownRight' = 1
+  索引39 b'mouthUpperUpLeft'  = 1
+  索引40 b'mouthUpperUpRight' = 1
+  索引41 b'browDownLeft'      = 1
+  索引42 b'browDownRight'     = 1
+  索引43 b'browInnerUp'       = 1
+  索引44 b'browOuterUpLeft'   = 1
+  索引45 b'browOuterUpRight'  = 1
+  索引46 b'cheekPuff'         = 1
+  索引47 b'cheekSquintLeft'   = 1
+  索引48 b'cheekSquintRight'  = 1
+  索引49 b'noseSneerLeft'     = 1
+  索引50 b'noseSneerRight'    = 1
+  索引51 b'tongueOut'         = 0  <-- active=0
+
+=== 结论 ===
+如果 JSON 数组就是 npz 顺序，那上面每个 active 值应对应正确的 pose 名，无需 remap

@@ -1,0 +1,24 @@
+﻿=== scale 匹配验证 ===
+npz poseNames: [b'neutral' b'eyeBlinkLeft' b'eyeLookDownLeft' b'eyeLookInLeft'
+ b'eyeLookOutLeft' b'eyeLookUpLeft' b'eyeSquintLeft' b'eyeWideLeft'
+ b'eyeBlinkRight' b'eyeLookDownRight' b'eyeLookInRight' b'eyeLookOutRight'
+ b'eyeLookUpRight' b'eyeSquintRight' b'eyeWideRight' b'jawForward'
+ b'jawLeft' b'jawRight' b'jawOpen' b'mouthClose' b'mouthFunnel'
+ b'mouthPucker' b'mouthLeft' b'mouthRight' b'mouthSmileLeft'
+ b'mouthSmileRight' b'mouthFrownLeft' b'mouthFrownRight'
+ b'mouthDimpleLeft' b'mouthDimpleRight' b'mouthStretchLeft'
+ b'mouthStretchRight' b'mouthRollLower' b'mouthRollUpper'
+ b'mouthShrugLower' b'mouthShrugUpper' b'mouthPressLeft'
+ b'mouthPressRight' b'mouthLowerDownLeft' b'mouthLowerDownRight'
+ b'mouthUpperUpLeft' b'mouthUpperUpRight' b'browDownLeft' b'browDownRight'
+ b'browInnerUp' b'browOuterUpLeft' b'browOuterUpRight' b'cheekPuff'
+ b'cheekSquintLeft' b'cheekSquintRight' b'noseSneerLeft' b'noseSneerRight'
+ b'tongueOut']
+neutral RMS = 88.8920, shape=(24002, 3)
+
+模型输出 skin delta (中心24002顶点×30帧): RMS=0.1908
+  单帧 skin delta: RMS=0.1466 max=1.0085
+  粗略下部 1/3: RMS=0.1324
+
+=== 结论 ===
+如果模型输出 delta RMS 远小于/大于 blendshape 模板 delta RMS，则求解权重会偏小/偏大

@@ -1,0 +1,9 @@
+﻿=== 模型输入 ===
+  window: shape=['window_dynamic_axes_1', 16000] dtype=tensor(float)
+  identity: shape=['identity_dynamic_axes_1', 3] dtype=tensor(float)
+  emotion: shape=['emotion_dynamic_axes_1', 30, 10] dtype=tensor(float)
+  input_latents: shape=[2, 2, 'input_latents_dynamic_axes_1', 256] dtype=tensor(float)
+  noise: shape=['noise_dynamic_axes_1', 3, 60, 88831] dtype=tensor(float)
+=== 模型输出 ===
+  prediction: shape=['prediction_dynamic_axes_1', 60, 88831] dtype=tensor(float)
+  output_latents: shape=[2, 2, 'output_latents_dynamic_axes_1', 256] dtype=tensor(float)

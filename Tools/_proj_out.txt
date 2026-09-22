@@ -1,0 +1,24 @@
+﻿npz keys (pose 数组): ['eyeBlinkLeft', 'eyeLookDownLeft', 'eyeLookInLeft', 'eyeLookOutLeft', 'eyeLookUpLeft', 'eyeSquintLeft', 'eyeWideLeft', 'eyeBlinkRight', 'eyeLookDownRight', 'eyeLookInRight'] ...
+
+--- blendshape 模板 delta RMS ---
+  jawOpen: RMS=0.3831 max=2.6156
+  mouthClose: RMS=0.0743 max=0.4424
+  mouthSmileLeft: RMS=0.1839 max=1.0266
+  eyeBlinkLeft: RMS=0.0378 max=0.7995
+  browDownLeft: RMS=0.0493 max=0.8672
+  cheekPuff: RMS=0.1549 max=1.3164
+
+frontalMask: 4262 顶点 -> 12786 分量
+
+--- 模型 delta（中心帧，掩码后 12786 分量）---
+  语音 skin delta RMS = 0.1805
+  静音 skin delta RMS = 0.0969
+  语音-静音 diff RMS = 0.1816
+
+--- 简单投影权重 w = dot(pose, delta) / dot(pose, pose) ---
+  jawOpen: 语音 w=+0.2373  静音 w=-0.0509  差值=+0.2882
+  mouthClose: 语音 w=-0.2195  静音 w=+0.0130  差值=-0.2325
+  mouthSmileLeft: 语音 w=+0.0421  静音 w=+0.1520  差值=-0.1100
+  mouthFunnel: 语音 w=-0.1618  静音 w=-0.1444  差值=-0.0173
+  eyeBlinkLeft: 语音 w=-0.0049  静音 w=+0.0570  差值=-0.0619
+  cheekPuff: 语音 w=-0.3454  静音 w=-0.0798  差值=-0.2656

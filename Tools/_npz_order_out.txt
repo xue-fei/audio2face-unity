@@ -1,0 +1,124 @@
+﻿npz poseNames 数量: 53
+npz poseNames 完整顺序:
+  [0] b'neutral'
+  [1] b'eyeBlinkLeft'
+  [2] b'eyeLookDownLeft'
+  [3] b'eyeLookInLeft'
+  [4] b'eyeLookOutLeft'
+  [5] b'eyeLookUpLeft'
+  [6] b'eyeSquintLeft'
+  [7] b'eyeWideLeft'
+  [8] b'eyeBlinkRight'
+  [9] b'eyeLookDownRight'
+  [10] b'eyeLookInRight'
+  [11] b'eyeLookOutRight'
+  [12] b'eyeLookUpRight'
+  [13] b'eyeSquintRight'
+  [14] b'eyeWideRight'
+  [15] b'jawForward'
+  [16] b'jawLeft'
+  [17] b'jawRight'
+  [18] b'jawOpen'
+  [19] b'mouthClose'
+  [20] b'mouthFunnel'
+  [21] b'mouthPucker'
+  [22] b'mouthLeft'
+  [23] b'mouthRight'
+  [24] b'mouthSmileLeft'
+  [25] b'mouthSmileRight'
+  [26] b'mouthFrownLeft'
+  [27] b'mouthFrownRight'
+  [28] b'mouthDimpleLeft'
+  [29] b'mouthDimpleRight'
+  [30] b'mouthStretchLeft'
+  [31] b'mouthStretchRight'
+  [32] b'mouthRollLower'
+  [33] b'mouthRollUpper'
+  [34] b'mouthShrugLower'
+  [35] b'mouthShrugUpper'
+  [36] b'mouthPressLeft'
+  [37] b'mouthPressRight'
+  [38] b'mouthLowerDownLeft'
+  [39] b'mouthLowerDownRight'
+  [40] b'mouthUpperUpLeft'
+  [41] b'mouthUpperUpRight'
+  [42] b'browDownLeft'
+  [43] b'browDownRight'
+  [44] b'browInnerUp'
+  [45] b'browOuterUpLeft'
+  [46] b'browOuterUpRight'
+  [47] b'cheekPuff'
+  [48] b'cheekSquintLeft'
+  [49] b'cheekSquintRight'
+  [50] b'noseSneerLeft'
+  [51] b'noseSneerRight'
+  [52] b'tongueOut'
+
+JSON activePoses 数量: 52
+
+逐项对照 (npz index → name → JSON active 值):
+  [0] b'neutral'           = 1
+  [1] b'eyeBlinkLeft'      = 0
+  [2] b'eyeLookDownLeft'   = 0
+  [3] b'eyeLookInLeft'     = 0
+  [4] b'eyeLookOutLeft'    = 0
+  [5] b'eyeLookUpLeft'     = 1
+  [6] b'eyeSquintLeft'     = 1
+  [7] b'eyeWideLeft'       = 1
+  [8] b'eyeBlinkRight'     = 0
+  [9] b'eyeLookDownRight'  = 0
+  [10] b'eyeLookInRight'    = 0
+  [11] b'eyeLookOutRight'   = 0
+  [12] b'eyeLookUpRight'    = 1
+  [13] b'eyeSquintRight'    = 1
+  [14] b'eyeWideRight'      = 1
+  [15] b'jawForward'        = 0
+  [16] b'jawLeft'           = 0
+  [17] b'jawRight'          = 1
+  [18] b'jawOpen'           = 1
+  [19] b'mouthClose'        = 1
+  [20] b'mouthFunnel'       = 1
+  [21] b'mouthPucker'       = 0
+  [22] b'mouthLeft'         = 0
+  [23] b'mouthRight'        = 1
+  [24] b'mouthSmileLeft'    = 1
+  [25] b'mouthSmileRight'   = 1
+  [26] b'mouthFrownLeft'    = 1
+  [27] b'mouthFrownRight'   = 1
+  [28] b'mouthDimpleLeft'   = 1
+  [29] b'mouthDimpleRight'  = 1
+  [30] b'mouthStretchLeft'  = 1
+  [31] b'mouthStretchRight' = 1
+  [32] b'mouthRollLower'    = 1
+  [33] b'mouthRollUpper'    = 1
+  [34] b'mouthShrugLower'   = 1
+  [35] b'mouthShrugUpper'   = 1
+  [36] b'mouthPressLeft'    = 1
+  [37] b'mouthPressRight'   = 1
+  [38] b'mouthLowerDownLeft' = 1
+  [39] b'mouthLowerDownRight' = 1
+  [40] b'mouthUpperUpLeft'  = 1
+  [41] b'mouthUpperUpRight' = 1
+  [42] b'browDownLeft'      = 1
+  [43] b'browDownRight'     = 1
+  [44] b'browInnerUp'       = 1
+  [45] b'browOuterUpLeft'   = 1
+  [46] b'browOuterUpRight'  = 1
+  [47] b'cheekPuff'         = 1
+  [48] b'cheekSquintLeft'   = 1
+  [49] b'cheekSquintRight'  = 1
+  [50] b'noseSneerLeft'     = 1
+  [51] b'noseSneerRight'    = 0
+  [52] b'tongueOut'         = ?
+
+关键 pose 定位:
+  jawOpen          不在 npz poseNames
+  mouthClose       不在 npz poseNames
+  jawLeft          不在 npz poseNames
+  jawRight         不在 npz poseNames
+  mouthLeft        不在 npz poseNames
+  mouthRight       不在 npz poseNames
+  eyeBlinkLeft     不在 npz poseNames
+  eyeWideLeft      不在 npz poseNames
+  mouthSmileLeft   不在 npz poseNames
+  mouthFunnel      不在 npz poseNames

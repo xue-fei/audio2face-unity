@@ -1,0 +1,100 @@
+numpy 1.23.5
+scipy 1.10.1
+npz keys: ['browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft', 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight', 'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight', 'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight', 'eyeLookUpLeft', 'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight', 'eyeWideLeft', 'eyeWideRight', 'frontalMask', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight', 'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft', 'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft', 'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight', 'mouthPucker', 'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper', 'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight', 'mouthUpperUpLeft', 'mouthUpperUpRight', 'neutral', 'noseSneerLeft', 'noseSneerRight', 'poseNames', 'rig_version', 'tongueOut']
+numPoses 52 active count 39
+L1 0.1 L2 0.1 TEMP 0.05 SYM 100.0 templateBB 53.45050282121686
+neutral len 72006 vertices 24002 mean|v| 54.268293604960405
+bbox diag 53.18932296227006 scaleFactor 0.9902511021517059
+reg terms: L1term 0.002475627755379265 L2term 0.9902511021517059 temporalTerm 4.951255510758529 symmetryTerm 990.2511021517058
+poseNames len 53 first3 ['neutral', 'eyeBlinkLeft', 'eyeLookDownLeft']
+frontalMask len 4262 min 11 max 22004
+P (solved positions) 12786
+K 39 D shape (39, 12786)
+D^T D diag: min 7.823 median 118 max 4565
+delta RMS per pose: min 0.02474 median 0.09607 max 0.59749
+sym pairs 13 cancel pairs 0
+
+=== 活跃 pose 清单 (idx, name, symId, |d|, |d|^2) ===
+   0 eyeBlinkLeft         sym= 0 |d|=6.529  A=42.63
+   5 eyeSquintLeft        sym=-1 |d|=3.171  A=10.05
+   6 eyeWideLeft          sym= 1 |d|=2.797  A=7.82
+   7 eyeBlinkRight        sym= 0 |d|=7.211  A=52.00
+  12 eyeSquintRight       sym=-1 |d|=3.444  A=11.86
+  13 eyeWideRight         sym= 1 |d|=2.876  A=8.27
+  14 jawForward           sym=-1 |d|=31.008  A=961.53
+  17 jawOpen              sym=-1 |d|=67.562  A=4564.58
+  18 mouthClose           sym=-1 |d|=11.747  A=137.99
+  19 mouthFunnel          sym=-1 |d|=33.300  A=1108.91
+  20 mouthPucker          sym=-1 |d|=34.870  A=1215.92
+  23 mouthSmileLeft       sym= 2 |d|=30.612  A=937.09
+  24 mouthSmileRight      sym= 2 |d|=27.959  A=781.72
+  25 mouthFrownLeft       sym= 3 |d|=8.515  A=72.50
+  26 mouthFrownRight      sym= 3 |d|=7.614  A=57.97
+  27 mouthDimpleLeft      sym= 4 |d|=10.863  A=118.01
+  28 mouthDimpleRight     sym= 4 |d|=7.940  A=63.05
+  29 mouthStretchLeft     sym= 5 |d|=19.544  A=381.95
+  30 mouthStretchRight    sym= 5 |d|=11.987  A=143.69
+  31 mouthRollLower       sym=-1 |d|=6.978  A=48.69
+  32 mouthRollUpper       sym=-1 |d|=4.068  A=16.55
+  33 mouthShrugLower      sym=-1 |d|=23.522  A=553.30
+  34 mouthShrugUpper      sym=-1 |d|=9.686  A=93.81
+  35 mouthPressLeft       sym= 6 |d|=14.214  A=202.03
+  36 mouthPressRight      sym= 6 |d|=17.338  A=300.62
+  37 mouthLowerDownLeft   sym= 7 |d|=18.343  A=336.46
+  38 mouthLowerDownRight  sym= 7 |d|=23.026  A=530.18
+  39 mouthUpperUpLeft     sym= 8 |d|=8.222  A=67.60
+  40 mouthUpperUpRight    sym= 8 |d|=6.868  A=47.18
+  41 browDownLeft         sym=10 |d|=9.159  A=83.89
+  42 browDownRight        sym=10 |d|=9.626  A=92.67
+  43 browInnerUp          sym=-1 |d|=11.816  A=139.62
+  44 browOuterUpLeft      sym= 9 |d|=10.417  A=108.51
+  45 browOuterUpRight     sym= 9 |d|=12.496  A=156.15
+  46 cheekPuff            sym=-1 |d|=31.958  A=1021.29
+  47 cheekSquintLeft      sym=11 |d|=3.829  A=14.66
+  48 cheekSquintRight     sym=11 |d|=3.727  A=13.89
+  49 noseSneerLeft        sym=12 |d|=18.167  A=330.06
+  50 noseSneerRight       sym=12 |d|=15.415  A=237.63
+
+=== 单 pose 自检（无对称伙伴） ===
+  eyeSquintLeft        自身=0.6134 最大=eyeSquintLeft(0.6134) 残差=0.3708  |d|=3.17  top: eyeSquintLeft=0.613 eyeBlinkLeft=0.030 eyeBlinkRight=0.029 cheekSquintLeft=0.012
+  eyeSquintRight       自身=0.6539 最大=eyeSquintRight(0.6539) 残差=0.3344  |d|=3.44  top: eyeSquintRight=0.654 eyeBlinkRight=0.027 eyeBlinkLeft=0.026 cheekSquintRight=0.010
+  jawForward           自身=0.9800 最大=jawForward(0.9800) 残差=0.0108  |d|=31.01  top: jawForward=0.980 mouthFrownLeft=0.017 mouthFrownRight=0.016 mouthPucker=0.016
+  jawOpen              自身=0.9992 最大=jawOpen(0.9992) 残差=0.0019  |d|=67.56  top: jawOpen=0.999 mouthRollLower=0.018 mouthFrownRight=0.002 mouthFrownLeft=0.002
+  mouthClose           自身=0.9541 最大=mouthClose(0.9541) 残差=0.0345  |d|=11.75  top: mouthClose=0.954 mouthRollLower=0.030 mouthPressRight=0.023 mouthPressLeft=0.023
+  mouthFunnel          自身=0.8917 最大=mouthFunnel(0.8917) 残差=0.0173  |d|=33.30  top: mouthFunnel=0.892 mouthPucker=0.103 mouthClose=0.079 mouthShrugUpper=0.064
+
+=== 对称对（联合） ===
+  eyeBlinkLeft+eyeBlinkRight 左=0.8887 右=0.0000 残差=0.1044
+
+=== 单侧 pose 单独喂（预期被 symmetry 拉平） ===
+  eyeBlinkLeft         自身=0.3906 最大=eyeBlinkLeft(0.3906) 残差=0.6969  |d|=6.53  top: eyeBlinkLeft=0.391 eyeBlinkRight=0.369 eyeSquintLeft=0.307 browDownLeft=0.013
+  eyeBlinkRight        自身=0.4810 最大=eyeBlinkRight(0.4810) 残差=0.6430  |d|=7.21  top: eyeBlinkRight=0.481 eyeBlinkLeft=0.459 eyeSquintRight=0.236 browDownRight=0.016
+  eyeWideLeft          自身=0.3922 最大=eyeWideLeft(0.3922) 残差=0.7134  |d|=2.80  top: eyeWideLeft=0.392 eyeWideRight=0.388 eyeSquintRight=0.028 browOuterUpLeft=0.016
+  eyeWideRight         自身=0.4424 最大=eyeWideRight(0.4424) 残差=0.6898  |d|=2.88  top: eyeWideRight=0.442 eyeWideLeft=0.438 eyeSquintLeft=0.019 browDownLeft=0.016
+  mouthSmileLeft       自身=0.2213 最大=mouthStretchLeft(1.0000) 残差=0.3492  |d|=30.61  top: mouthStretchLeft=1.000 mouthStretchRight=0.939 mouthShrugLower=0.594 mouthRollUpper=0.411
+  mouthSmileRight      自身=0.4763 最大=mouthSmileRight(0.4763) 残差=0.4442  |d|=27.96  top: mouthSmileRight=0.476 mouthClose=0.475 mouthShrugUpper=0.366 mouthRollLower=0.271
+  mouthFrownLeft       自身=0.5170 最大=mouthFrownLeft(0.5170) 残差=0.5881  |d|=8.51  top: mouthFrownLeft=0.517 mouthFrownRight=0.490 mouthRollLower=0.080 mouthStretchLeft=0.057
+  mouthFrownRight      自身=0.5478 最大=mouthFrownRight(0.5478) 残差=0.6701  |d|=7.61  top: mouthFrownRight=0.548 mouthFrownLeft=0.521 mouthShrugLower=0.154 mouthRollLower=0.109
+
+=== 对称对的相关系数 cos(dL,dR) ===
+  eyeBlinkLeft         / eyeBlinkRight        cos=-0.0000  |dL|=6.5 |dR|=7.2
+  eyeWideLeft          / eyeWideRight         cos=0.0000  |dL|=2.8 |dR|=2.9
+  mouthSmileLeft       / mouthSmileRight      cos=0.0242  |dL|=30.6 |dR|=28.0
+  mouthFrownLeft       / mouthFrownRight      cos=0.0615  |dL|=8.5 |dR|=7.6
+  mouthDimpleLeft      / mouthDimpleRight     cos=0.0016  |dL|=10.9 |dR|=7.9
+  mouthStretchLeft     / mouthStretchRight    cos=0.0261  |dL|=19.5 |dR|=12.0
+  mouthPressLeft       / mouthPressRight      cos=0.1143  |dL|=14.2 |dR|=17.3
+  mouthLowerDownLeft   / mouthLowerDownRight  cos=0.1524  |dL|=18.3 |dR|=23.0
+
+=== neutral 反例 ===
+  权重合计=27.428 残差=0.9926 |neutral|=10191.3
+
+=== 关掉所有正则（纯最小二乘）再做单 pose 自检 ===
+  eyeBlinkLeft [无正则]   自身=1.0000 最大=eyeBlinkLeft(1.0000) 残差=0.0000  |d|=6.53  top: eyeBlinkLeft=1.000 mouthRollLower=0.000 mouthStretchRight=0.000 mouthShrugLower=0.000
+  eyeSquintLeft [无正则]  自身=1.0000 最大=eyeSquintLeft(1.0000) 残差=0.0000  |d|=3.17  top: eyeSquintLeft=1.000 mouthRollLower=0.000 mouthShrugLower=0.000 mouthStretchRight=0.000
+  eyeWideLeft [无正则]    自身=1.0000 最大=eyeWideLeft(1.0000) 残差=0.0000  |d|=2.80  top: eyeWideLeft=1.000 mouthRollLower=0.000 mouthShrugLower=0.000 mouthStretchRight=0.000
+  eyeBlinkRight [无正则]  自身=1.0000 最大=eyeBlinkRight(1.0000) 残差=0.0000  |d|=7.21  top: eyeBlinkRight=1.000 mouthRollLower=0.000 mouthShrugLower=0.000 mouthStretchRight=0.000
+  eyeSquintRight [无正则] 自身=1.0000 最大=eyeSquintRight(1.0000) 残差=0.0000  |d|=3.44  top: eyeSquintRight=1.000 mouthRollLower=0.000 mouthShrugLower=0.000 mouthStretchRight=0.000
+  eyeWideRight [无正则]   自身=1.0000 最大=eyeWideRight(1.0000) 残差=0.0000  |d|=2.88  top: eyeWideRight=1.000 mouthRollLower=0.000 mouthShrugLower=0.000 mouthStretchRight=0.000
+  jawForward [无正则]     自身=1.0000 最大=jawForward(1.0000) 残差=0.0000  |d|=31.01  top: jawForward=1.000 mouthFrownRight=0.000 mouthFrownLeft=0.000 mouthClose=0.000
+  jawOpen [无正则]        自身=1.0000 最大=jawOpen(1.0000) 残差=0.0000  |d|=67.56  top: jawOpen=1.000 mouthFrownRight=0.000 mouthLowerDownLeft=0.000 mouthClose=0.000
