@@ -38,6 +38,9 @@ namespace Audio2Face
 
         private readonly float[] _skinVertices;
         private readonly float[] _tongueVertices;
+        // animator 的掩码视图缓冲：只装 frontalMask 挑出来的分量（= solver.SolvedPositionCount）。
+        // 非空时 SolveSkinAt 走「只重建掩码顶点」的快路径。
+        private float[] _skinVerticesMasked;
         private readonly float _dt;
 
         // 眨眼驱动：SDK 的 blinkOffset 要应用层每帧喂，SDK 不自带生成器
@@ -69,6 +72,19 @@ namespace Audio2Face
 
         private volatile int _inferenceCount;
         private float _lastInferenceMs;
+        // 单次耗时拆两段：ONNX 推理本身 vs 30 帧的解算/动画后处理。
+        // 瓶颈常常不在 GPU 上而在后处理（实测 ONNX≈60ms、后处理≈300ms），不拆开永远看不出来。
+        private float _lastRunMs;
+        private float _lastPostMs;
+        // 解算剖析：animator 顶点重建 vs blendshape 求解（skin / tongue 分开统计）
+        private const int SolveProfilePeriod = 300;
+        private readonly System.Diagnostics.Stopwatch _swSolve = new System.Diagnostics.Stopwatch();
+        private int _solveFrames;
+        private double _msAnim;
+        private double _msSolve;
+        private int _solveFramesT;
+        private double _msAnimT;
+        private double _msSolveT;
 
         // ---- 口型开合整形 + 嘴部通道诊断 ----
         // 背景：Mark 模板里几个「闭唇」pose 与 jawOpen 在顶点空间几乎反向共线
@@ -116,6 +132,10 @@ namespace Audio2Face
         public bool IsRunning => _workerRunning;
         public bool IsBusy => _busy;
         public float LastInferenceMs => _lastInferenceMs;
+        /// <summary>最近一次推理里 ONNX Session.Run 本身的耗时（不含解算）。</summary>
+        public float LastRunMs => _lastRunMs;
+        /// <summary>最近一次推理里 30 帧 skin/tongue/jaw 解算 + 动画的耗时。</summary>
+        public float LastPostProcessMs => _lastPostMs;
         public int PendingFrames { get { lock (_frameLock) return _frameCount; } }
         /// <summary>环形缓冲里尚未被推理消费的音频样本数（背压用）。</summary>
         public long UnconsumedAudioSamples => _ringTotal - _consumedUntil;
@@ -306,6 +326,23 @@ namespace Audio2Face
 
             if (!_skinSolver.IsReady)
                 throw new Exception("skin blendshape 求解器初始化失败");
+
+            // ── animator 掩码视图 ──────────────────────────────────────────────
+            // solver 只按 frontalMask 读 ~18% 的顶点，而插值是逐分量独立的，
+            // 所以让 animator 只重建这些顶点即可，输出紧凑布局直接喂 SolveMasked。
+            // 数值上与「重建全部顶点再挑」逐位一致（faceMask 沿用全量 neutral 的 Y 归一化基准）。
+            if (_skinAnimator != null && _skinAnimator.IsReady)
+            {
+                _skinAnimator.SetMask(_skinSolver.MaskPositions);
+                if (_skinAnimator.HasMaskView)
+                {
+                    _skinVerticesMasked = new float[_skinSolver.SolvedPositionCount];
+                    if (config.debugMode)
+                        Debug.Log($"[Audio2Face] skin animator 掩码视图已启用: 顶点 {_info.SkinSize / 3} → " +
+                                  $"{_skinSolver.SolvedPositionCount / 3}（{_skinSolver.SolvedPositionCount * 100f / _info.SkinSize:F0}%），" +
+                                  $"分量 {_info.SkinSize} → {_skinSolver.SolvedPositionCount}");
+                }
+            }
 
             SkinPoseCount = _skinSolver.NumPoses;
             TonguePoseCount = _tongueSolver.IsReady ? _tongueSolver.NumPoses : 0;
@@ -570,10 +607,12 @@ namespace Audio2Face
 
                 _busy = true;
                 var sw = System.Diagnostics.Stopwatch.StartNew();
+                long msAfterRun = 0;
                 try
                 {
                     _model.Run(_window);
-                    SolveCenterFrames();
+                    msAfterRun = sw.ElapsedMilliseconds;   // ← ONNX 推理到此为止
+                    SolveCenterFrames();                   // ← 剩下全是 CPU 后处理（30 帧解算）
                 }
                 catch (Exception ex)
                 {
@@ -581,6 +620,14 @@ namespace Audio2Face
                 }
                 sw.Stop();
                 _lastInferenceMs = (float)sw.Elapsed.TotalMilliseconds;
+                _lastRunMs = (float)msAfterRun;
+                _lastPostMs = Mathf.Max(0f, _lastInferenceMs - _lastRunMs);
+                // 拆成两段是为了定位瓶颈：ONNX 段是 GPU/推理后端的事，
+                // 后处理段是 30 帧×（skin animator + blendshape 解算）的纯 CPU 活。
+                // 前 3 次每次都打（第 1 次含 CUDA kernel autotune，偏慢是正常的），之后每 20 次一条防刷屏。
+                if (_inferenceCount <= 3 || _inferenceCount % 20 == 0)
+                    Debug.Log($"[A2F推理] #{_inferenceCount} ONNX={_lastRunMs:F0}ms 后处理={_lastPostMs:F0}ms " +
+                              $"合计={_lastInferenceMs:F0}ms 后端={_model.ActiveProvider}");
                 _runRequested = false;
                 _busy = false;
             }
@@ -592,6 +639,10 @@ namespace Audio2Face
             int totalDim = _model.TotalDim;
             int left = _info.FramesLeftTruncate;
             int center = _info.FramesCenter;
+
+            // 后处理（解算）单独计时：_lastInferenceMs 要到 WorkerLoop 结束才更新，
+            // 在这里读它是上一次的值（以前这条日志一直打的是上一次的耗时）。
+            var postSw = _config != null && _config.debugMode ? System.Diagnostics.Stopwatch.StartNew() : null;
 
             _inferenceCount++;
             // warmup = 窗口右端还没覆盖满一个窗口（窗口仍含 padding_left）。
@@ -728,9 +779,11 @@ namespace Audio2Face
                 if (sb != null) Debug.Log(sb.ToString());
             }
 
-            if (_config.debugMode && !warmup)
+            if (postSw != null && !warmup)
             {
-                Debug.Log($"[Audio2Face] 第 {_inferenceCount} 次推理完成 {_lastInferenceMs:F1}ms，队列 {PendingFrames} 帧");
+                postSw.Stop();
+                Debug.Log($"[Audio2Face] 第 {_inferenceCount} 次推理完成 ONNX={_lastRunMs:F1}ms " +
+                          $"解算30帧={postSw.Elapsed.TotalMilliseconds:F1}ms，队列 {PendingFrames} 帧");
             }
         }
 
@@ -742,8 +795,39 @@ namespace Audio2Face
         {
             if (_skinAnimator != null && _skinAnimator.IsReady)
             {
-                _skinAnimator.Animate(_model.Prediction, row + _info.SkinOffset, _skinVertices, 0, _dt);
-                return _skinSolver.Solve(_skinVertices, 0);
+                // 解算侧剖析：把「animator 顶点重建」和「blendshape 求解」分开计时。
+                // 没有这个拆分就不知道每帧那 ~10ms 到底是谁花的
+                // （实测 solver 只占 ~5.7ms，剩下的全在 animator 里）。
+                _swSolve.Restart();
+                float[] r;
+                double tAnim;
+                if (_skinVerticesMasked != null)
+                {
+                    // 快路径：只重建 solver 真正会读的掩码顶点（数值与全量路径一致）
+                    _skinAnimator.AnimateMasked(_model.Prediction, row + _info.SkinOffset, _skinVerticesMasked, 0, _dt);
+                    tAnim = _swSolve.Elapsed.TotalMilliseconds;
+                    r = _skinSolver.SolveMasked(_skinVerticesMasked, 0);
+                }
+                else
+                {
+                    _skinAnimator.Animate(_model.Prediction, row + _info.SkinOffset, _skinVertices, 0, _dt);
+                    tAnim = _swSolve.Elapsed.TotalMilliseconds;
+                    r = _skinSolver.Solve(_skinVertices, 0);
+                }
+                _msAnim += tAnim;
+                _msSolve += _swSolve.Elapsed.TotalMilliseconds - tAnim;
+                if (++_solveFrames >= SolveProfilePeriod)
+                {
+                    Debug.Log($"[解算剖析] skin: animator={_msAnim / _solveFrames:F3} + solver={_msSolve / _solveFrames:F3} " +
+                              $"= {(_msAnim + _msSolve) / _solveFrames:F3}ms/帧（{_solveFrames} 帧均值，顶点=" +
+                              (_skinVerticesMasked != null
+                                  ? $"{_skinVerticesMasked.Length / 3}(掩码)/{_skinVertices.Length / 3}(全量)"
+                                  : $"{_skinVertices.Length / 3}") + "）");
+                    _solveFrames = 0;
+                    _msAnim = 0;
+                    _msSolve = 0;
+                }
+                return r;
             }
             return _skinSolver.Solve(_model.Prediction, row + _info.SkinOffset);
         }
@@ -752,8 +836,21 @@ namespace Audio2Face
         {
             if (_tongueAnimator != null && _tongueAnimator.IsReady)
             {
+                _swSolve.Restart();
                 _tongueAnimator.Animate(_model.Prediction, row + _info.TongueOffset, _tongueVertices, 0);
-                return _tongueSolver.Solve(_tongueVertices, 0);
+                double tAnim = _swSolve.Elapsed.TotalMilliseconds;
+                var r = _tongueSolver.Solve(_tongueVertices, 0);
+                _msAnimT += tAnim;
+                _msSolveT += _swSolve.Elapsed.TotalMilliseconds - tAnim;
+                if (++_solveFramesT >= SolveProfilePeriod)
+                {
+                    Debug.Log($"[解算剖析] tongue: animator={_msAnimT / _solveFramesT:F3} + solver={_msSolveT / _solveFramesT:F3} " +
+                              $"= {(_msAnimT + _msSolveT) / _solveFramesT:F3}ms/帧（{_solveFramesT} 帧均值）");
+                    _solveFramesT = 0;
+                    _msAnimT = 0;
+                    _msSolveT = 0;
+                }
+                return r;
             }
             return _tongueSolver.Solve(_model.Prediction, row + _info.TongueOffset);
         }
@@ -935,9 +1032,11 @@ namespace Audio2Face
             Array.Copy(window, _window, Mathf.Min(window.Length, _window.Length));
             var sw = System.Diagnostics.Stopwatch.StartNew();
             _model.Run(_window);
+            _lastRunMs = (float)sw.Elapsed.TotalMilliseconds;
             SolveCenterFrames();
             sw.Stop();
             _lastInferenceMs = (float)sw.Elapsed.TotalMilliseconds;
+            _lastPostMs = Mathf.Max(0f, _lastInferenceMs - _lastRunMs);
         }
 
         /// <summary>换噪声种子（自检用）。</summary>

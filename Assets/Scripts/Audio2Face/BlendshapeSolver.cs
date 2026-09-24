@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
 
 namespace Audio2Face
@@ -232,6 +233,10 @@ namespace Audio2Face
         private float[] _weightBaseline;        // NumPoses，可选静音基线
         private float[] _result;                // NumPoses
 
+        // BVLS 工作区（复用临时缓冲 + 缓存正规方程矩阵）。
+        // 每个 solver 一份：A 矩阵在 Load 之后就不变了，G = A·A 可以一直缓存着。
+        private BvlsWorkspace _bvls;
+
     /// <param name="npzPath">bs_skin_Mark.npz 之类的完整路径</param>
     /// <param name="configPath">bs_skin_config_Mark.json 之类的完整路径</param>
     /// <param name="useMask">是否使用 npz 里的 frontalMask（只解正面顶点，快 5 倍以上）</param>
@@ -438,6 +443,11 @@ namespace Audio2Face
                 _lower = new float[k];
                 _upper = new float[k];
                 for (int i = 0; i < k; i++) _lower[i] = 0f;
+                _bvls = new BvlsWorkspace(k)
+                {
+                    UseNormalEquations = UseBvlsNormalEquations,
+                    RelativeTolerance = BvlsRelativeTolerance
+                };
             }
 
             _target = new float[_numPositions];
@@ -572,6 +582,10 @@ namespace Audio2Face
             // 1. target = masked(geometry)（delta 模式）或 masked(geometry) - masked(neutral)（绝对坐标模式）
             //    注意：_deltas 的每一行是按 frontalMask 挑出来的分量，
             //    target 必须走同一套掩码，否则 b = D^T·target 是错位投影，残差会接近 1。
+            _profileOn = ++_profileFrames >= ProfilePeriod;
+            // 每帧都测（Stopwatch 两次调用相对 ms 级解算可忽略），只在第 ProfilePeriod 帧汇总打印。
+            // 坑：若只在那一帧测却又除以 ProfilePeriod，会打出小 300 倍的假数字。
+            _sw.Restart();
             double sq = 0.0;
             for (int i = 0; i < _numPositions; i++)
             {
@@ -582,6 +596,38 @@ namespace Audio2Face
                 _target[i] = v;
                 sq += (double)v * v;
             }
+            _msTarget += _sw.Elapsed.TotalMilliseconds;
+            LastTargetRms = _numPositions > 0 ? (float)Math.Sqrt(sq / _numPositions) : 0f;
+
+            return SolveCore();
+        }
+
+        /// <summary>
+        /// 输入<b>已经是掩码布局</b>（长度 SolvedPositionCount，第 i 个分量就是 _maskPositions[i]）
+        /// 时走这条路径，跳过掩码取样。配合 <see cref="Audio2FaceSkinAnimator.AnimateMasked"/> 使用：
+        /// animator 只重建 frontalMask 挑中的顶点、输出紧凑数组，solver 直接读，
+        /// 省掉「全量重建 24002 个顶点 → 只挑 4262 个」的浪费。
+        /// </summary>
+        public float[] SolveMasked(float[] maskedGeometry, int offset)
+        {
+            if (!IsReady || maskedGeometry == null) return null;
+
+            _profileOn = ++_profileFrames >= ProfilePeriod;
+            _sw.Restart();
+
+            bool absCoord = !TargetIsDelta;
+            var neu = _neutral;
+            var bias = _targetBias;
+            double sq = 0.0;
+            for (int i = 0; i < _numPositions; i++)
+            {
+                float v = maskedGeometry[offset + i];
+                if (absCoord) v -= neu[i];
+                if (bias != null) v -= bias[i];
+                _target[i] = v;
+                sq += (double)v * v;
+            }
+            _msTarget += _sw.Elapsed.TotalMilliseconds;
             LastTargetRms = _numPositions > 0 ? (float)Math.Sqrt(sq / _numPositions) : 0f;
 
             return SolveCore();
@@ -653,25 +699,115 @@ namespace Audio2Face
             return true;
         }
 
+        /// <summary>
+        /// b = D^T·target 是否走 Vector&lt;float&gt; SIMD。设 false 会退回「4 路展开的 float 标量」，
+        /// 用于老运行时（Vector 未被硬件加速时）或数值对拍。
+        /// </summary>
+        public static bool UseSimdDot = true;
+
+        /// <summary>
+        /// BVLS 内部解自由变量子问题时是否走「正规方程 + Cholesky」。
+        /// 默认 true（比 Householder QR 快约 10 倍）。设 false 退回原来的 QR 路径做数值对拍；
+        /// 建议在 Load 之前设置，之后改只影响新建的 solver。
+        /// </summary>
+        public static bool UseBvlsNormalEquations = true;
+
+        /// <summary>
+        /// BVLS 的<b>相对</b> KKT 容差：阈值 = max(solverTolerance, 本值 × 梯度量级)。
+        /// 默认 1e-6 —— SDK 的绝对 1e-10 对 1e3~1e5 量级的梯度永远达不到，主循环只能靠
+        /// 「没有变量想脱离边界」退出（实测 18.4 次迭代/帧）；改相对判据后降到个位数，
+        /// 权重偏差 ~1e-5（见 [BVLS对拍] 第二行）。设 0 = 只认绝对容差（旧行为）。
+        /// </summary>
+        public static float BvlsRelativeTolerance = 1e-6f;
+
+        // 解算耗时剖析：每 ProfilePeriod 帧打一条，把「点积」和「BVLS」分开，
+        // 否则永远不知道 10ms/帧到底花在哪一段。
+        private const int ProfilePeriod = 300;
+        private readonly System.Diagnostics.Stopwatch _sw = new System.Diagnostics.Stopwatch();
+        private int _profileFrames;
+        private bool _profileOn;
+        private double _msTarget;
+        private double _msDot;
+        private double _msBvls;
+        private long _cmTotal;      // ConstrainedMin 次数（含 cancelPairs 重解）
+        private long _iterTotal;    // BVLS 主循环迭代次数
+        private int _cholFail;      // Cholesky 回退 QR 次数（>0 说明正规方程条件数撑不住）
+
         /// <summary>b = D^T·target → BVLS → cancelPairs → 映射回全部 pose。</summary>
         private float[] SolveCore()
         {
             int k = _b.Length;
+            bool profile = _profileOn;
 
             // 2. b = D^T * target + temporalReg * scaleFactor * prevWeights
-            for (int j = 0; j < k; j++)
+            //    这是每帧解算最热的一段：k(≈50) × _numPositions(≈6 万) ≈ 300 万次乘加。
+            //    原来是「逐元素转 double 再累加」——一旦转 double，JIT 就只能标量化跑（double 只有 2-wide）。
+            //    改成 System.Numerics.Vector<float> 显式 SIMD（SSE 4 路 / AVX 8 路），两条累加链拉开 ILP。
+            //    精度：float 多路累加，误差约是单路的 1/2~1/2.8，比 double 大约 4 个数量级，
+            //    但相对量级 ~1e-5，对 0~1 的权重和 BVLS 容差没有影响。怀疑数值问题时
+            //    把 UseSimdDot 设 false 即退回原来的 double 标量路径（两种路径同时保留）。
+            _sw.Restart();
+            if (UseSimdDot && Vector.IsHardwareAccelerated)
             {
-                double sum = 0.0;
-                int row = j * _numPositions;
-                for (int i = 0; i < _numPositions; i++) sum += (double)_deltas[row + i] * _target[i];
-                _b[j] = (float)sum + _temporalReg * _scaleFactor * _prevWeights[j];
+                int n = _numPositions;
+                int vw = Vector<float>.Count;
+                int limit = n - (n % vw);
+
+                for (int j = 0; j < k; j++)
+                {
+                    int row = j * n;
+                    var acc0 = Vector<float>.Zero;
+                    var acc1 = Vector<float>.Zero;
+                    int i = 0;
+                    for (; i + vw * 2 <= limit; i += vw * 2)
+                    {
+                        acc0 += new Vector<float>(_deltas, row + i) * new Vector<float>(_target, i);
+                        acc1 += new Vector<float>(_deltas, row + i + vw) * new Vector<float>(_target, i + vw);
+                    }
+                    for (; i < limit; i += vw)
+                        acc0 += new Vector<float>(_deltas, row + i) * new Vector<float>(_target, i);
+
+                    var acc = acc0 + acc1;
+                    float sum = 0f;
+                    for (int c = 0; c < vw; c++) sum += acc[c];   // 不用 Vector.Dot：部分 profile 没有它
+                    for (; i < n; i++) sum += _deltas[row + i] * _target[i];
+
+                    _b[j] = sum + _temporalReg * _scaleFactor * _prevWeights[j];
+                }
             }
+            else
+            {
+                // 没有硬件 SIMD 时的可移植加速：4 路展开 + 两条累加链（float，不转 double）。
+                // 比原来的 double 标量版快一截（float 运算 + 指令级并行），且不依赖 Vector<T> 是否被加速。
+                int n = _numPositions;
+                int limit = n - (n % 4);
+                for (int j = 0; j < k; j++)
+                {
+                    int row = j * n;
+                    float s0 = 0f, s1 = 0f, s2 = 0f, s3 = 0f;
+                    int i = 0;
+                    for (; i < limit; i += 4)
+                    {
+                        s0 += _deltas[row + i] * _target[i];
+                        s1 += _deltas[row + i + 1] * _target[i + 1];
+                        s2 += _deltas[row + i + 2] * _target[i + 2];
+                        s3 += _deltas[row + i + 3] * _target[i + 3];
+                    }
+                    float sum = (s0 + s1) + (s2 + s3);
+                    for (; i < n; i++) sum += _deltas[row + i] * _target[i];
+
+                    _b[j] = sum + _temporalReg * _scaleFactor * _prevWeights[j];
+                }
+            }
+            _msDot += _sw.Elapsed.TotalMilliseconds;
 
             // 3. BVLS
             var aMat = _disableReg ? _aMatNoReg : _aMat;
             for (int i = 0; i < k; i++) _upper[i] = 1f;
             Array.Copy(_prevWeights, _x, k);
-            Bvls.Solve(_x, aMat, k, _b, _lower, _upper, _tolerance);
+            int cm0 = _bvls.CmCount, it0 = _bvls.IterCount, cf0 = _bvls.CholFail;
+            _sw.Restart();
+            _bvls.Solve(_x, aMat, k, _b, _lower, _upper, _tolerance);
 
             // 4. cancelPairs：把较小的那个上界压到 ~0 后重解
             if (_cancelPairs.Count > 0)
@@ -682,8 +818,12 @@ namespace Audio2Face
                     int loser = _x[pair.Key] >= _x[pair.Value] ? pair.Value : pair.Key;
                     _upper[loser] = 1e-10f;
                 }
-                Bvls.Solve(_x, aMat, k, _b, _lower, _upper, _tolerance);
+                _bvls.Solve(_x, aMat, k, _b, _lower, _upper, _tolerance);
             }
+            _msBvls += _sw.Elapsed.TotalMilliseconds;
+            _cmTotal += _bvls.CmCount - cm0;
+            _iterTotal += _bvls.IterCount - it0;
+            _cholFail += _bvls.CholFail - cf0;
 
             // 保存供下一帧的时间正则使用
             Array.Copy(_x, _prevWeights, k);
@@ -708,6 +848,28 @@ namespace Audio2Face
                 _result[i] = w < 0f ? 0f : (w > 1f ? 1f : w);
             }
 
+            if (profile)
+            {
+                int f = _profileFrames;
+                Debug.Log($"[解算耗时] n={_numPositions} k={k}: 掩码取样={_msTarget / f:F3} + D^T·target={_msDot / f:F3} " +
+                          $"+ BVLS={_msBvls / f:F3} = {(_msTarget + _msDot + _msBvls) / f:F3}ms/帧（{f} 帧均值，" +
+                          (UseSimdDot && Vector.IsHardwareAccelerated
+                              ? $"SIMD Vector<float>×{Vector<float>.Count}"
+                              : "4 路展开 float") +
+                          $"；BVLS：{_cmTotal / (double)f:F1} 次线性解+{_iterTotal / (double)f:F1} 次迭代/帧" +
+                          (_bvls != null ? $"，KKT阈值={_bvls.LastThreshold:E1}" : "") +
+                          (_cholFail > 0 ? $"，Cholesky 回退 {_cholFail} 次" : "") +
+                          $"，路径={(_bvls != null && _bvls.UseNormalEquations ? "Cholesky正规方程" : "Householder QR")}）");
+                _profileFrames = 0;
+                _profileOn = false;
+                _msTarget = 0;
+                _msDot = 0;
+                _msBvls = 0;
+                _cmTotal = 0;
+                _iterTotal = 0;
+                _cholFail = 0;
+            }
+
             return _result;
         }
 
@@ -717,5 +879,12 @@ namespace Audio2Face
         }
 
         public int SolvedPositionCount => _numPositions;
+
+        /// <summary>
+        /// frontalMask 展开成<b>分量级</b>的下标表（长度 SolvedPositionCount，值 = 3v+c）；
+        /// 没开掩码时是 null。给 <see cref="Audio2FaceSkinAnimator.SetMask"/> 用，
+        /// 让 animator 只重建 solver 真正会读的那部分顶点。
+        /// </summary>
+        public int[] MaskPositions => _maskPositions;
     }
 }

@@ -187,6 +187,14 @@ namespace Audio2Face
                  "设 0 = 不预缓冲（麦克风实时场景用 0）。")]
         public int prebufferFrames = 60;
 
+        [Tooltip("播放期间「已推入 pipeline 的音频」最多领先播放头多少秒。\n" +
+                 "原来唯一的背压是环形缓冲容量：每帧推 4096 样本 = 0.256s 音频 = 15 倍实时，\n" +
+                 "于是整段音频被一次性提前算完，帧队列 30→60→…→385 一路涨（22 秒音频最终\n" +
+                 "在内存里堆 1300+ 帧）。离线播一段 clip 只是「提前算完」，实时麦克风输入则会\n" +
+                 "持续累积延迟。按播放时钟节流后生产速率 = 消费速率（都是 60 帧/秒），队列稳定。\n" +
+                 "实际领先量还会取「开播那一刻已有的领先量」的下限，避免刚开播就干等。")]
+        public float maxPushAheadSec = 1.0f;
+
         [Header("求解器")]
         [Tooltip("使用 npz 里的 frontalMask 只解正面顶点，速度约快 5 倍")]
         public bool useFrontalMask = true;

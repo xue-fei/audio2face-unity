@@ -1222,23 +1222,63 @@ namespace Audio2Face
             }
 
             // 阶段 3：继续推剩余音频，边推边播放
+            //
+            // ⚠ 背压原来是「只看环形缓冲容量」：每帧推 4096 样本 = 0.256s 音频 = 15 倍实时，
+            // 推理线程永远有活干，整段音频被一次性提前算完 —— 日志里「队列 30→60→…→385」
+            // 就是这么来的，22 秒的音频最终会在内存里堆 1300+ 帧。离线播一段 clip 只是
+            // 「提前算完」（同步差稳定在 -20ms，观感没差），但实时输入会持续累积延迟。
+            // 改成按播放时钟节流：已推音频领先播放头不超过 lead 秒。节流后生产速率
+            // （30 帧 / 0.5s 音频）与消费速率（60 帧/s）相等，队列不再涨。
+            //
+            // 注意 lead 要取「开播那一刻已有的领先量」的下限：预缓冲为了攒 prebufferFrames
+            // 帧必然已经多推了约 1~2 秒音频，若直接用配置值会在开播瞬间干等，队列被抽干、
+            // 脸僵住。这里只保证「不再增长」，不追求把既有领先量压回去。
+            int sampleRate = target;
+            float lead = Mathf.Max(0.1f, Config.maxPushAheadSec);
+            if (_audioPlaying && _audioSource != null)
+            {
+                float aheadAtStart = (float)cursor / sampleRate - _audioSource.time;
+                if (aheadAtStart > lead)
+                {
+                    lead = aheadAtStart;
+                    if (Config.debugMode)
+                        Debug.Log($"[A2F推流] 开播时已领先 {aheadAtStart:F2}s，节流阈值抬到 {lead:F2}s（只保证不增长）");
+                }
+            }
+
             while (cursor < pcm.Length)
             {
-                // 背压：等推理消费掉环形缓冲里的数据
-                // ring 容量 = BufferLength = 16000，每次推理消费 StrideSamples = 8000
-                // 保留至少 1 次推理的空间（8000），避免覆盖未消费数据
+                // 背压 1：环形缓冲不能溢出（保留一次推理的空间，避免覆盖未消费数据）
                 while (_pipeline.UnconsumedAudioSamples >= _pipeline.RingCapacity)
                     yield return null;
+
+                // 背压 2：别把音频推得比播放头快太多
+                if (_audioPlaying && _audioSource != null && _audioSource.isPlaying)
+                {
+                    float ahead = (float)cursor / sampleRate - _audioSource.time;
+                    float waitDeadline = Time.realtimeSinceStartup + 5f;   // 兜底：播放时钟卡住时别吊死
+                    while (ahead > lead && _audioSource.isPlaying && Time.realtimeSinceStartup < waitDeadline)
+                    {
+                        yield return null;
+                        ahead = (float)cursor / sampleRate - _audioSource.time;
+                    }
+                    if (ahead > lead && _audioSource.isPlaying)
+                        Debug.LogWarning($"[A2F推流] 等待播放头超时（领先 {ahead:F2}s > {lead:F2}s），放弃节流继续推。" +
+                                         "若反复出现，检查音频是否真的在播。");
+                }
 
                 int chunk = Mathf.Min(4096, pcm.Length - cursor);
                 _pipeline.PushAudio(pcm, cursor, chunk);
                 _pipeline.Tick();
                 cursor += chunk;
-                if (pushCount < 12)
+                if (pushCount < 12 || pushCount % 120 == 0)
                 {
                     float s = 0f; for (int i = 0; i < chunk; i++) s += pcm[cursor - chunk + i] * pcm[cursor - chunk + i];
                     float rms = Mathf.Sqrt(s / chunk);
-                    Debug.Log($"[A2F推流] push#{pushCount} cursor={cursor}/{pcm.Length} chunkRMS={rms:F4} 未消费={_pipeline.UnconsumedAudioSamples}/{_pipeline.RingCapacity}");
+                    float ahead = _audioPlaying && _audioSource != null ? (float)cursor / sampleRate - _audioSource.time : -1f;
+                    Debug.Log($"[A2F推流] push#{pushCount} cursor={cursor}/{pcm.Length} chunkRMS={rms:F4} " +
+                              $"未消费={_pipeline.UnconsumedAudioSamples}/{_pipeline.RingCapacity} " +
+                              $"领先播放={ahead:F2}s(限 {lead:F2}s) 队列={_pipeline.PendingFrames}帧");
                 }
                 pushCount++;
                 yield return null;

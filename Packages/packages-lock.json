@@ -125,15 +125,6 @@
       "dependencies": {},
       "hash": "f8cfbf149ddfacbb64ae22538134b74ebfdf71aa"
     },
-    "onnxruntime-cpu": {
-      "version": "https://github.com/xue-fei/onnxruntime-unity-cpu.git",
-      "depth": 0,
-      "source": "git",
-      "dependencies": {
-        "onnxruntime": "https://github.com/xue-fei/onnxruntime-unity.git#main"
-      },
-      "hash": "405205eb3fbe4baf6b0f43358dd86113fd1c0b59"
-    },
     "onnxruntime-cuda": {
       "version": "https://github.com/xue-fei/onnxruntime-unity-cuda.git",
       "depth": 0,

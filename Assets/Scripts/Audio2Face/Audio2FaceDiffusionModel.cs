@@ -45,6 +45,9 @@ namespace Audio2Face
         public int TotalDim => _totalDim;
         public float[] Prediction => _prediction;
 
+        /// <summary>实际生效的推理后端（TensorRT / CUDA / CPU）。启动日志和 [A2F推理] 用它对账。</summary>
+        public string ActiveProvider { get; private set; } = "未初始化";
+
         /// <summary>
         /// 输入音频增益（对应 SDK 的 inputStrength，ReadAudioBuffer 里对音频乘这个）。
         /// 官方 stylization 里 Mark=1.3、Claire/James=1.0，由 Pipeline 构造时从
@@ -79,6 +82,12 @@ namespace Audio2Face
             Debug.Log($"[Audio2Face] 模型输入: [{string.Join(", ", _session.InputMetadata.Keys)}]");
             Debug.Log($"[Audio2Face] 模型输出: [{string.Join(", ", _session.OutputNames)}]");
 
+            // ★ 一眼对账推理后端。CPU = 没用上 GPU，扩散模型会慢几十倍，必须排查。
+            Debug.Log($"[Audio2Face] ★ 推理后端={ActiveProvider}" +
+                      (ActiveProvider == "CPU"
+                          ? "（扩散模型在 CPU 上会非常慢——检查 onnxruntime_providers_cuda.dll 是否加载）"
+                          : $"（device {config.deviceId}）"));
+
             if (config.debugMode)
             {
                 Debug.Log($"[Audio2Face] 模型加载完成: {modelPath}");
@@ -89,19 +98,25 @@ namespace Audio2Face
             }
         }
 
-        private static SessionOptions CreateSessionOptions(Audio2FaceDiffusionConfig config)
+        // 注意：这里必须是实例方法（要写 ActiveProvider），别改回 static。
+        // 历史坑：onnxruntime-cpu 与 onnxruntime-cuda 两个 UPM 包都带 Plugins/Win/onnxruntime.dll，
+        // Windows 按基名只加载先注册的那个（CPU 构建）→ MakeSessionOptionWithCudaProvider 抛异常 →
+        // 以前只 LogWarning 就静默回退 CPU，"配置了 CUDA 却在 CPU 上跑"完全无感。
+        // 现已从 manifest 移除 onnxruntime-cpu；回退一律 LogError + 打全量异常（含 DLL 加载细节）。
+        private SessionOptions CreateSessionOptions(Audio2FaceDiffusionConfig config)
         {
             if (config.executionProvider == Audio2FaceExecutionProvider.TensorRT)
             {
                 try
                 {
                     var opt = SessionOptions.MakeSessionOptionWithTensorrtProvider(config.deviceId);
+                    ActiveProvider = "TensorRT";
                     Debug.Log($"[Audio2Face] 使用 TensorRT EP (device {config.deviceId})");
                     return opt;
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[Audio2Face] TensorRT 不可用，回退 CUDA: {ex.Message}");
+                    Debug.LogError($"[Audio2Face] ✗ TensorRT 不可用，回退 CUDA。异常详情（DLL 加载失败的原因在这里）：\n{ex}");
                 }
             }
 
@@ -110,16 +125,23 @@ namespace Audio2Face
                 try
                 {
                     var opt = SessionOptions.MakeSessionOptionWithCudaProvider(config.deviceId);
+                    ActiveProvider = "CUDA";
                     Debug.Log($"[Audio2Face] 使用 CUDA EP (device {config.deviceId})");
                     return opt;
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning($"[Audio2Face] CUDA 不可用，回退 CPU: {ex.Message}");
+                    Debug.LogError($"[Audio2Face] ✗ CUDA 不可用，回退 CPU——推理会非常慢！" +
+                                   $"多半是 onnxruntime_providers_cuda.dll 没加载（包冲突/被杀软拦）。异常详情：\n{ex}");
                 }
             }
+            else
+            {
+                // 配置本来就选 CPU：不算回退，只提示性能。
+                Debug.LogWarning("[Audio2Face] 配置为 CPU EP，扩散模型会非常慢");
+            }
 
-            Debug.LogWarning("[Audio2Face] 使用 CPU EP，扩散模型会非常慢");
+            ActiveProvider = "CPU";
             return new SessionOptions();
         }
 
@@ -325,31 +347,41 @@ namespace Audio2Face
             
             if (shouldLog)
             {
+                // 诊断扫描：prediction 有 533 万个 float，原来每 10 次推理就全量扫一遍
+                // —— 实测要多花 ~250ms（ONNX 段从 58ms 飙到 308ms），正好造成周期性掉队。
+                // 改成：前 5 次全量（留可信基线），之后每 DiagSampleStep 个取 1 采样。
+                // RMS 是均值量，1/16 采样后数值不变；只有 NaN 检出率降到 1/16，
+                // 但扩散模型一旦出 NaN 是成片出现的，采样抓得到。
+                int step = _runCount <= 5 ? 1 : DiagSampleStep;
                 int nanCount = 0;
-                float predRms = 0f;
-                float skinRms = 0f;
-                float tongueRms = 0f;
+                double predSq = 0.0, skinSq = 0.0, tongueSq = 0.0;
                 float skinMax = 0f;
-                
-                for (int i = 0; i < _prediction.Length; i++)
+                int nPred = 0, nSkin = 0, nTongue = 0;
+                int skinEnd = _info.SkinSize;
+                int tongueEnd = _info.SkinSize + _info.TongueSize;
+
+                for (int i = 0; i < _prediction.Length; i += step)
                 {
                     float v = _prediction[i];
                     if (float.IsNaN(v) || float.IsInfinity(v)) nanCount++;
-                    double abs = Math.Abs(v);
-                    predRms += v * v;
-                    if (i < _info.SkinSize)
+                    float abs = Math.Abs(v);
+                    predSq += (double)v * v;
+                    nPred++;
+                    if (i < skinEnd)
                     {
-                        skinRms += v * v;
-                        if (abs > skinMax) skinMax = (float)abs;
+                        skinSq += (double)v * v;
+                        nSkin++;
+                        if (abs > skinMax) skinMax = abs;
                     }
-                    else if (i < _info.SkinSize + _info.TongueSize)
+                    else if (i < tongueEnd)
                     {
-                        tongueRms += v * v;
+                        tongueSq += (double)v * v;
+                        nTongue++;
                     }
                 }
-                predRms = (float)Math.Sqrt(predRms / _prediction.Length);
-                skinRms = (float)Math.Sqrt(skinRms / Math.Max(1, _info.SkinSize));
-                tongueRms = (float)Math.Sqrt(tongueRms / Math.Max(1, _info.TongueSize));
+                float predRms = (float)Math.Sqrt(predSq / Math.Max(1, nPred));
+                float skinRms = (float)Math.Sqrt(skinSq / Math.Max(1, nSkin));
+                float tongueRms = (float)Math.Sqrt(tongueSq / Math.Max(1, nTongue));
 
                 // GRU latents NaN 检测
                 int latNan = 0;
@@ -358,7 +390,7 @@ namespace Audio2Face
 
                 if (nanCount > 0 || latNan > 0)
                 {
-                    Debug.LogWarning($"[Audio2Face] ⚠ NaN/Inf: prediction={nanCount}/{_prediction.Length}, latents={latNan}/{_latents.Length} → 推理损坏，重置 GRU");
+                    Debug.LogWarning($"[Audio2Face] ⚠ NaN/Inf: prediction={nanCount}/{nPred}(采样1/{step}), latents={latNan}/{_latents.Length} → 推理损坏，重置 GRU");
                     ResetState();
                 }
                 else
@@ -380,6 +412,9 @@ namespace Audio2Face
                 }
             }
         }
+
+        /// <summary>诊断统计的采样步长（1 = 全量扫 533 万 float，太慢；16 = 成本降到 1/16）。</summary>
+        private const int DiagSampleStep = 16;
 
         private int _runCount = 0;
         /// <summary>最后一次推理的音频 RMS（外部可读）。</summary>

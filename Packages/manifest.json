@@ -5,7 +5,6 @@
     "com.unity.recorder": "5.1.7",
     "com.unity.ugui": "2.0.0",
     "onnxruntime": "https://github.com/xue-fei/onnxruntime-unity.git",
-    "onnxruntime-cpu": "https://github.com/xue-fei/onnxruntime-unity-cpu.git",
     "onnxruntime-cuda": "https://github.com/xue-fei/onnxruntime-unity-cuda.git",
     "com.unity.modules.accessibility": "1.0.0",
     "com.unity.modules.adaptiveperformance": "1.0.0",
