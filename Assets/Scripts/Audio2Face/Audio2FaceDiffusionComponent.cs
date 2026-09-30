@@ -140,6 +140,8 @@ namespace Audio2Face
 
         private float _frameAccumulator;
         private bool _started;
+        /// <summary>OnDestroy 之后后台回调不能再碰任何东西。</summary>
+        private bool _destroyed;
 
         // ---- 音频时钟同步 ----
         // SDK 语义（executor_diffusion_core.cpp GetProgressParameters）：
@@ -167,7 +169,7 @@ namespace Audio2Face
         /// <summary>实际驱动 blendshape 的网格。</summary>
         public SkinnedMeshRenderer TargetMesh => _skinnedMesh;
 
-        void Start()
+        IEnumerator Start()
         {
             if (Config != null && Config.Migrate())
                 Debug.Log($"[Audio2Face] 配置已升级到 v{Audio2FaceDiffusionConfig.LatestConfigVersion}：" +
@@ -184,16 +186,50 @@ namespace Audio2Face
                                      "blendshape 不会生效");
             }
 
+            // ── ONNX 异步加载 ──
+            // new InferenceSession(network.onnx) 是整套初始化里最重的一步：读几百 MB 权重
+            // + 图优化 + CUDA context 初始化，同步跑会把主线程卡住好几秒（点 Play 后
+            // 编辑器直接无响应）。这里用 Loom 丢到后台线程，主线程每帧轮询一次，期间照常渲染。
+            //
+            // ⚠ 路径必须在主线程先取好再传进去：Config.ModelFolderFullPath 走
+            //   Application.streamingAssetsPath，那是 UnityEngine API，不能跨线程读。
+            string folder = Config != null ? Config.ModelFolderFullPath : null;
+            var model = new Audio2FaceDiffusionModel();
+            bool loaded = false;
+            Exception loadError = null;
+            model.LoadAsync(Config, folder,
+                () => loaded = true,
+                ex => { loadError = ex; loaded = true; });
+
+            float loadStart = Time.realtimeSinceStartup;
+            while (!loaded) yield return null;
+
+            // 加载期间组件被销毁（切场景 / 退出播放）：别再往下走，把后台刚建好的 session 释放掉。
+            if (_destroyed)
+            {
+                model.Dispose();
+                yield break;
+            }
+
+            if (loadError != null)
+            {
+                Debug.LogError($"[Audio2Face] ONNX 加载失败: {loadError.Message}\n{loadError.StackTrace}");
+                enabled = false;
+                yield break;
+            }
+            Debug.Log($"[Audio2Face] ONNX 异步加载完成：后台耗时 {model.LoadMs:F0}ms，" +
+                      $"主线程等待 {(Time.realtimeSinceStartup - loadStart) * 1000f:F0}ms（期间未阻塞，编辑器可正常响应）");
+
             try
             {
-                _pipeline = new Audio2FaceDiffusionPipeline(Config);
+                _pipeline = new Audio2FaceDiffusionPipeline(Config, model, folder);
                 _started = true;
             }
             catch (Exception ex)
             {
                 Debug.LogError($"[Audio2Face] 管线初始化失败: {ex.Message}\n{ex.StackTrace}");
                 enabled = false;
-                return;
+                yield break;
             }
 
             if (_skinnedMesh != null)
@@ -411,6 +447,7 @@ namespace Audio2Face
 
         void OnDestroy()
         {
+            _destroyed = true;
             StopMicrophone();
             _pipeline?.Dispose();
             _pipeline = null;

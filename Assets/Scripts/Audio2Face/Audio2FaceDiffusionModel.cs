@@ -55,13 +55,59 @@ namespace Audio2Face
         /// </summary>
         public float InputStrength { get; set; } = 1f;
 
-        public void Initialize(Audio2FaceDiffusionConfig config)
+        /// <summary>同步加载（原行为，会阻塞调用线程）。</summary>
+        public void Initialize(Audio2FaceDiffusionConfig config, string folder = null)
         {
+            LoadCore(config, folder ?? config.ModelFolderFullPath, false);
+        }
+
+        /// <summary>
+        /// 后台线程异步加载 ONNX。onDone / onError 都在主线程回调。
+        /// 主线程这边用协程轮询 IsInitialized 即可，不阻塞：
+        /// <code>
+        ///   model.LoadAsync(Config, folder, null, ex => ...);
+        ///   while (!model.IsInitialized) yield return null;
+        /// </code>
+        /// </summary>
+        /// <param name="folder">
+        /// 模型目录。**必须在主线程先取好再传进来** —— 默认值 config.ModelFolderFullPath
+        /// 走 Application.streamingAssetsPath，那是 UnityEngine API，不能跨线程读。
+        /// </param>
+        public void LoadAsync(Audio2FaceDiffusionConfig config, string folder,
+                              Action onDone, Action<Exception> onError)
+        {
+            string f = folder ?? config.ModelFolderFullPath;
+            Loom.RunAsync(
+                () =>
+                {
+                    LoadCore(config, f, true);
+                    Loom.QueueOnMainThread(() => onDone?.Invoke());
+                },
+                ex => Loom.QueueOnMainThread(() => onError?.Invoke(ex)));
+        }
+
+        /// <summary>上一次加载的总耗时（毫秒）。主线程读，用来核对卡顿是否真的挪走了。</summary>
+        public float LoadMs { get; private set; }
+
+        /// <summary>
+        /// 加载主体：读 network_info → 建 InferenceSession → 读 metadata → 开缓冲/填噪声 → 建输入。
+        ///
+        /// 为什么能整体放后台：整段都是纯 CPU + 文件 IO，不碰 UnityEngine API
+        /// （Debug.Log 是线程安全的，Mathf 只是纯数学）。
+        ///
+        /// 为什么连 AllocateBuffers 一起搬：它要按 session 的输出维度开 16M 个高斯分量
+        /// （61MB，FillGaussian 本身也是几百毫秒），硬依赖 session，拆开反而要跨线程同步；
+        /// 而且它同样是大卡顿源，留主线程就白改了。
+        /// </summary>
+        private void LoadCore(Audio2FaceDiffusionConfig config, string folder, bool async)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             _config = config;
-            string folder = config.ModelFolderFullPath;
 
             string infoPath = System.IO.Path.Combine(folder, "network_info.json");
             _info = Audio2FaceNetworkInfo.Load(infoPath);
+            long t1 = sw.ElapsedMilliseconds;
 
             string modelPath = System.IO.Path.Combine(folder, "network.onnx");
             if (!System.IO.File.Exists(modelPath))
@@ -71,11 +117,16 @@ namespace Audio2Face
             options.GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL;
             options.ExecutionMode = ExecutionMode.ORT_SEQUENTIAL;
 
+            // ★ 整套初始化里最重的一步：读几百 MB 权重 + 图优化 + CUDA context 初始化。
             _session = new InferenceSession(modelPath, options);
+            long t2 = sw.ElapsedMilliseconds;
 
             ReadMetadata();
             AllocateBuffers(config);
             BuildInputs();
+            long t3 = sw.ElapsedMilliseconds;
+
+            LoadMs = t3;
 
             // 关键诊断：打印模型实际的输入/输出名。如果 output_latents 的真实名字不同，
             // Run 里的按名拷贝会静默跳过 → GRU 状态永远为零 → 输出与音频完全脱节。
@@ -96,6 +147,9 @@ namespace Audio2Face
                 Debug.Log($"[Audio2Face] frames/run={_framesPerRun} 每帧维度={_totalDim} " +
                           $"步长={_info.StrideSamples} 样本 帧率={_info.FrameRate:F1}fps 预热={_info.WarmupInferences} 次");
             }
+
+            Debug.Log($"[Audio2Face] 模型加载耗时{(async ? "（后台线程，主线程未阻塞）" : "（主线程同步）")}: " +
+                      $"network_info={t1}ms, ONNX session={t2 - t1}ms, 噪声+缓冲={t3 - t2}ms, 合计={t3}ms");
         }
 
         // 注意：这里必须是实例方法（要写 ActiveProvider），别改回 static。

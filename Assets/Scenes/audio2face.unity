@@ -238,8 +238,6 @@ GameObject:
   - component: {fileID: 876846231}
   - component: {fileID: 876846230}
   - component: {fileID: 876846229}
-  - component: {fileID: 876846232}
-  - component: {fileID: 876846233}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -321,60 +319,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &876846232
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 876846228}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f541b9bb6bc0e4f4ab8447f1fa0c5ec9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Audio2Emotion.Audio2EmotionExample
-  Config:
-    modelPath: Audio2Emotion-v2.2/network.onnx
-    sampleRate: 16000
-    inferenceWindowSeconds: 0.5
-    frameShiftSeconds: 0.033
-    useCUDA: 1
-    cudaDeviceId: 0
-    outputEmotionLength: 10
-    emotionContrast: 1
-    liveBlendCoef: 0.7
-    emotionStrength: 0.6
-    maxEmotions: 6
-    fixedDt: 0.033
-    transitionSmoothing: 0.5
-    enablePreferredEmotion: 0
-    preferredEmotionStrength: 0.5
-    preferredEmotion:
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    - 0
-    debugMode: 1
-  TestClip: {fileID: 8300000, guid: 4decd17043f9b374c9ecec03d783aef2, type: 3}
---- !u!114 &876846233
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 876846228}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9ce0121a2712b4945992c65160a12b62, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Audio2Face::Audio2Face.Audio2FaceModelInspector
-  modelPath: nvidiaAudio2Face-3D-v3.0/network.onnx
 --- !u!1 &910393766
 GameObject:
   m_ObjectHideFlags: 0

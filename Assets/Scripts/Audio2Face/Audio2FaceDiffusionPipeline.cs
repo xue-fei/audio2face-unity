@@ -172,12 +172,30 @@ namespace Audio2Face
         public int InferenceCount => _inferenceCount;
 
         public Audio2FaceDiffusionPipeline(Audio2FaceDiffusionConfig config)
+            : this(config, null, null)
+        {
+        }
+
+        /// <summary>
+        /// 传入已在后台加载好的 model（以及它用的目录）就跳过最重的 ONNX 加载 ——
+        /// 配合 Audio2FaceDiffusionModel.LoadAsync 用。modelFolder 必须在主线程先取好。
+        /// </summary>
+        public Audio2FaceDiffusionPipeline(Audio2FaceDiffusionConfig config,
+                                           Audio2FaceDiffusionModel preloadedModel,
+                                           string modelFolder = null)
         {
             _config = config;
-            string folder = config.ModelFolderFullPath;
+            string folder = modelFolder ?? config.ModelFolderFullPath;
 
-            _model = new Audio2FaceDiffusionModel();
-            _model.Initialize(config);
+            if (preloadedModel != null && preloadedModel.IsInitialized)
+            {
+                _model = preloadedModel;          // ONNX 已在后台线程加载完，这里零成本
+            }
+            else
+            {
+                _model = new Audio2FaceDiffusionModel();
+                _model.Initialize(config, folder);
+            }
             _info = _model.Info;
 
             // 眨眼调度器（blinkOffset 由应用层每帧喂给 animator，SDK 不自带）
