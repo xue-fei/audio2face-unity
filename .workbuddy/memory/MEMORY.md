@@ -30,9 +30,25 @@
 - `ProcessClipRoutine` 阶段 3 每帧 push 4096 样本 = **15 倍实时**。只靠 ring 容量背压的话，推理线程永远有活干 → 整段音频被提前算完，帧队列单调涨（实测 30→385，22s 音频最终堆 1300+ 帧）；离线播 clip 只是"提前算完"，**实时输入会持续累积延迟**。
 - 现已按播放时钟节流（config `maxPushAheadSec`），节流后生产速率（30 帧 / 0.5s 音频）== 消费速率（60 帧/s），队列收敛。
 - **致命坑**：lead 必须取 `max(config, 开播那一刻的实际领先量)`。预缓冲为了攒 prebufferFrames 帧必然已多推 ~2s 音频，直接用配置值会在开播瞬间干等、队列被抽干、脸僵住。只保证不增长，不回压。
+- **`Tick()` 触发条件必须是「新」窗口右端推满**（`ringTotal >= consumedUntil + stride`）。用旧游标判断却按新游标取窗口的话，尾部最多 8000 样本是没推进来的；ring 只有 2×窗口 → 读到上一圈（约 2s 前）的旧音频，其中超出右截断 4000 的部分会混进模型真正输出的 30 帧。指纹：push 行 `未消费` 绝对值 > 4000。修好后 `UnconsumedAudioSamples` 恒 ≥0（旧行为长期为负），背压 1 这才真正生效；代价是队列从 ~100 降到 ~50~75。窗口补零分左右两段：左（开播预热）/ 右（兜底，正常恒为 0，非零会打 Warning）。
+- **无 tongue 通道就停算舌头**：`Pipeline.SetTongueBound(false)`（Component 绑定统计为 0 时调）→ `SolveTongueNow` 门控 animator+BVLS（1.25ms/帧 ≈ 37ms/次）。**帧布局不变**（FrameStride 仍含 16 个舌头槽位，恒写 0），否则下游按 pose 名/下标取值的映射会整体错位。
 
 ## 探针 / 日志约定
 - `[A2F实测]`（BakeMesh 量真实唇缝）是「嘴张没张」的终局证据；静息基准 ≈1.19% 网格高，说话上限应到 2~6%。`mesh.vertices` 在无 Read/Write 时返回空数组不抛异常——量顶点一律用 BakeMesh / GetBlendShapeFrameVertices。
 - 唇缝探针用 v4（逐 pose 打满烘 BakeMesh 量质心距离系数），别退回投影/符号法（v1~v3 全错）。
 - `[解算耗时] n=.. k=..: 掩码取样 + D^T·target + BVLS`（每 300 帧一条）是解算侧的分段计时；末尾会标明点积走的是 `SIMD Vector<float>×N` 还是 `4 路展开 float`（后者 = Unity Mono 没加速 Vector<T>）。`BlendshapeSolver.UseSimdDot=false` 可强制走展开版对拍。
 - `[A2F写入]`（Component）与 `[A2F驱动]`（Tester）两条心跳的 jawOpen 峰值必须对账一致；不一致 = 姿序又不同步。
+- ⚠ `[A2F同步] 差=..ms` **查不出常量偏移**：帧 j 的显示时刻就是按 `targetOffset + j/fps` 反推出来的，它恒 ≈0，只能证明消费速率对。查「口型比声音早/晚 N 秒」要看 `[A2F对齐]`（首个正式帧样本 vs TargetOffsetSamples 的绝对偏差）。
+
+## 音画对齐不变量（改窗口/游标代码前必读）
+- SDK 时序（executor_diffusion_core.cpp GetProgressParameters）：窗口 k 的 `end = stride*k`、
+  `start = stride*k − bufferLen`；stride=8000、bufferLen=16000、60 帧/窗口、输出 center=30 帧（f=15..44）。
+- **k=0/k=1 是 padding 预热窗口，不输出帧；第一个正式帧出自 k=2** → 样本 `0 + 15×(16000/60)` = **4000**
+  = `TargetOffsetSamples` = 0.25s。Component 的 `帧 j ↔ 0.25 + j/60` 就是按这个来的。
+- **`_windowEnd` 必须 = `nextEnd`（真正的窗口右端），不能记成递增前的旧游标**。记旧游标会让
+  `warmup = _windowEnd < BufferLength` 多跳一次推理（首帧变 0.75s → 口型比声音**早 0.5s**），
+  同时 `winStart` 少 8000 使眨眼时间戳和 `[A2F逐帧] t=` 全偏早 0.5s。
+- 总帧数对这个 bug 不敏感（1920 帧不变），只有内容整体平移 → 帧数/队列/耗时全看不出来。
+- `warmupSamples = WarmupInferences*stride = 16000`：阶段1 推满 16000 时 `ConsumedSamples` 正好 16000，
+  k=2 正好在此刻产出首帧 —— 与 SDK 语义自洽，改 warmup 逻辑时要拿这个对一遍。
+- 人工微调走 `Config.syncOffsetSec`（正 = 口型延后），不要去改 `TargetOffsetSamples` 或截断音频开头。

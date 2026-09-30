@@ -256,6 +256,12 @@ namespace Audio2Face
                 else if (Config.debugMode)
                     Debug.Log($"[Audio2Face] 共绑定 {_bindings.Count} 张网格，skin 命中 {totalSkin} 通道，tongue 命中 {totalTongue} 通道");
 
+                // 没有任何网格带 tongue 形状 → 解出来的 16 路权重没有落点，
+                // 整段 animator + BVLS（≈1.25ms/帧，占后处理 130ms 的 29%）纯白干，直接停掉。
+                // 帧布局不变（舌头槽位保留并清零），下游按 pose 名取值的映射不受影响。
+                if (totalTongue == 0 && _bindings.Count > 0)
+                    _pipeline.SetTongueBound(false);
+
                 LogMouthBinding();
                 if (JawBone == null)
                     Debug.LogWarning("[A2F骨骼] 没填 Jaw Bone —— 下颌刚体变换没有落点，挂在骨骼上的牙齿不会动。" +
@@ -465,11 +471,13 @@ namespace Audio2Face
 
             float fps = _pipeline.Info != null ? _pipeline.Info.FrameRate : 60f;
 
-            // 优先用音频时钟驱动：帧 j 的音频时刻 = targetOffsetSec + j / fps。
-            // 这样队列积压（推理快于实时）或短暂耗尽（推理慢于实时）都不会造成永久漂移。
+            // 优先用音频时钟驱动：帧 j 的音频时刻 = targetOffsetSec + syncOffsetSec + j / fps。
+            // targetOffsetSec（0.25s）是模型结构自带的 —— 第一个正式帧对应音频样本 4000；
+            // syncOffsetSec 是人工微调（正 = 延后）。两者加起来才是帧 j 真正该出现的音频时刻。
+            float frameOffset = _targetOffsetSec + (Config != null ? Config.syncOffsetSec : 0f);
             if (_audioPlaying && _audioSource != null && _audioSource.isPlaying)
             {
-                double targetFrame = (_audioSource.time - _targetOffsetSec) * fps;
+                double targetFrame = (_audioSource.time - frameOffset) * fps;
                 int want = (int)Math.Floor(targetFrame) - _displayedFrames;
                 if (want <= 0) return;
 
@@ -505,7 +513,7 @@ namespace Audio2Face
                 if (Config.debugMode && _displayedFrames - _lastSyncLogFrame >= 30)
                 {
                     _lastSyncLogFrame = _displayedFrames;
-                    float frameT = _targetOffsetSec + (_displayedFrames - 1) / fps;
+                    float frameT = frameOffset + (_displayedFrames - 1) / fps;
                     Debug.Log($"[A2F同步] 音频={_audioSource.time:F3}s 动画帧时刻={frameT:F3}s " +
                               $"差={(frameT - _audioSource.time) * 1000f:F0}ms 已显示={_displayedFrames} 队列={_pipeline.PendingFrames}");
                 }

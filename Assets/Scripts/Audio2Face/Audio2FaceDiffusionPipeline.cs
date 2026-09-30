@@ -62,6 +62,21 @@ namespace Audio2Face
         private volatile bool _workerRunning;
         private volatile bool _workerPaused;
 
+        // 舌头到底有没有落点。网格上一个 tongue blendshape 都没命中时，解出来的 16 路
+        // 权重没有任何消费者，整段 animator+BVLS 是纯浪费（实测 1.25ms/帧 ≈ 37ms/次推理，
+        // 占后处理 130ms 的 29%）。由 Component 在绑定完成后调 SetTongueBound() 设。
+        // 默认 true = 旧行为（有网格绑定舌头 / 无绑定信息时照旧算）。
+        private volatile bool _tongueBound = true;
+        // 窗口尾部「未推送即被读取」的兜底告警（触发条件修好后理论上永远不会打）
+        private bool _windowTailWarned;
+
+        // 眨眼日志从「每帧一条」合并成「每次推理一条」时的累加器
+        private int _blinkFrames;
+        private float _blinkPeakL;
+        private float _blinkPeakR;
+        private float _blinkT0;
+        private float _blinkT1;
+
         // 帧队列（环形，避免 GC）
         private readonly float[] _frameStore;
         private readonly int _frameStride;
@@ -126,8 +141,10 @@ namespace Audio2Face
         private int _mouthDbgFrames;
         private float _tongueDbgMax;
         private const int MouthDbgPeriod = 60;
-        /// <summary>当前这次推理的窗口右端（样本号），SolveCenterFrames 用它判断 warmup。</summary>
+        /// <summary>本次推理的窗口右端（样本号），SolveCenterFrames 用它判断 warmup + 算帧时间戳。</summary>
         private long _windowEnd;
+        /// <summary>「首个正式帧对齐」只打一次，避免刷屏。</summary>
+        private bool _alignLogged;
 
         public bool IsRunning => _workerRunning;
         public bool IsBusy => _busy;
@@ -146,6 +163,25 @@ namespace Audio2Face
         public long ConsumedSamples => _consumedUntil;
         public int SkinPoseCount { get; private set; }
         public int TonguePoseCount { get; private set; }
+        /// <summary>网格上是否至少命中 1 个 tongue 通道（false = 舌头解算已停）。</summary>
+        public bool TongueBound => _tongueBound;
+        /// <summary>本帧是否真的要解舌头（模型就绪 + 网格有落点）。</summary>
+        private bool SolveTongueNow => _tongueBound && _tongueSolver != null && _tongueSolver.IsReady;
+
+        /// <summary>
+        /// 绑定阶段告知管线：有没有网格真的带 tongue blendshape。
+        /// 没有任何落点时整段跳过舌头解算（解出来的权重没人读）。
+        /// 帧布局（FrameStride）保持不变 —— 舌头槽位照旧保留，只是恒为 0，
+        /// 免得下游按下标取 pose 时整体错位。
+        /// </summary>
+        public void SetTongueBound(bool bound)
+        {
+            if (_tongueBound == bound) return;
+            _tongueBound = bound;
+            if (!bound && _config != null && _config.debugMode)
+                Debug.Log($"[Audio2Face] 没有任何网格绑定 tongue 通道 → 跳过舌头解算" +
+                          $"（省 {TonguePoseCount} 路 animator+BVLS，约 1.2ms/帧）");
+        }
         public int FrameStride => _frameStride;
 
         /// <summary>
@@ -583,33 +619,68 @@ namespace Audio2Face
             // 对齐 SDK WindowProgress（executor_diffusion_core.cpp GetProgressParameters）：
             //   窗口右端 = 消费游标 consumedUntil（每次推理后 +stride=8000），
             //   窗口 = [consumedUntil - BufferLength, consumedUntil)，负的部分（音频未到）补 0。
-            // 触发条件：ringTotal >= consumedUntil（音频已覆盖到窗口右端）。
             //
             // 之前用「最近 ringTotal 个样本右对齐」，在推流快于推理时窗口会超前（右端跑到
             // 最新推送位置），口型比听到的声音提前约 1 秒，是「张嘴/眨眼不自然」的根因。
-            if (_ringTotal < _consumedUntil) return;
+            //
+            // ── 触发条件：必须等「新」窗口右端也推满 ──────────────────────────
+            // 旧写法判断的是旧游标（_ringTotal >= _consumedUntil 才触发），
+            // 却紧接着按新游标取窗口 [nextEnd - BufferLength, nextEnd)。
+            // 于是窗口尾部最多 8000 样本是「还没推流进来」的，而 ring 物理容量只有
+            // 2×窗口 —— 那些位置存的还是上一圈（约 2s 前）的旧音频。模型真正输出的
+            // 30 帧覆盖 [nextEnd-12000, nextEnd-4000)，所以超出右截断的那部分
+            // （= nextEnd - ringTotal - 4000，最多 4000 样本 / 0.25s）会直接混进去，
+            // 表现为每 0.5s 末尾若干帧的口型对不上。日志指纹：push 行「未消费」绝对值 > 4000。
+            long nextEnd = _consumedUntil + _info.StrideSamples;
+            if (_ringTotal < nextEnd) return;
 
             int ringLen = _ring.Length;                 // 物理容量（2 × 窗口）
             int windowLen = _info.BufferLength;         // 窗口大小
-            int available = (int)Math.Min(_consumedUntil, windowLen);
-            int zeroCount = windowLen - available;
 
-            // 窗口起点样本号 = consumedUntil - available，其在环形缓冲里的位置
-            int start = (int)((_consumedUntil - available) % ringLen);
+            // 窗口 = [nextEnd - windowLen, nextEnd)。两段可能缺失：
+            //   左端：nextEnd < windowLen（开播预热），样本号是负的 → 左补零
+            //   右端：ringTotal < nextEnd（理论上被上面的触发条件排除）→ 右补零兜底，
+            //         绝不去读环形缓冲里上一圈的旧数据
+            long winLo = nextEnd - windowLen;
+            long validLo = winLo > 0L ? winLo : 0L;
+            long validHi = nextEnd < _ringTotal ? nextEnd : _ringTotal;
+            if (validHi < validLo) validHi = validLo;
 
-            for (int i = 0; i < zeroCount; i++) _window[i] = 0f;
-            for (int i = 0; i < available; i++) _window[zeroCount + i] = _ring[(start + i) % ringLen];
+            int leftZero = (int)Math.Min(validLo - winLo, windowLen);
+            int available = (int)Math.Min(validHi - validLo, (long)(windowLen - leftZero));
+            int rightZero = windowLen - leftZero - available;
+            int start = (int)(validLo % ringLen);
 
-            // 记录本次推理的窗口右端（递增前），供 warmup 判断
-            _windowEnd = _consumedUntil;
-            _consumedUntil += _info.StrideSamples;
+            for (int i = 0; i < leftZero; i++) _window[i] = 0f;
+            for (int i = 0; i < available; i++) _window[leftZero + i] = _ring[(start + i) % ringLen];
+            for (int i = 0; i < rightZero; i++) _window[leftZero + available + i] = 0f;
+
+            if (rightZero > 0 && !_windowTailWarned)
+            {
+                _windowTailWarned = true;
+                Debug.LogWarning($"[A2F窗口] 窗口尾部 {rightZero} 样本尚未推送（已补零，不再读上一圈数据）: " +
+                                 $"ringTotal={_ringTotal} 窗口右端={nextEnd} —— 触发条件理应杜绝这种情况，请查调用方");
+            }
+
+            // ⚠ 窗口右端必须记「本次真正取音频用的那个右端」= nextEnd，不是递增前的旧游标。
+            // SDK 时序：窗口 k 的 end = stride*k，start = stride*k - bufferLen；
+            // k=0([-16000,0))、k=1([-8000,8000)) 是 padding 预热窗口，不输出帧；
+            // 第一个正式帧出自 k=2（窗口 [0,16000)，f=15）→ 样本 4000 = 0.25s
+            // = TargetOffsetSamples，正好等于 Component 端 _targetOffsetSec。
+            // 旧写法记的是 nextEnd - stride（落后一个 stride），导致：
+            //   ① warmup 多跳一次推理 → 首帧内容晚 0.5s，动画整体比声音早 0.5s；
+            //   ② winStart 少 8000 → 眨眼和 [A2F逐帧] 的时间戳全部偏早 0.5s。
+            _windowEnd = nextEnd;
+            _consumedUntil = nextEnd;
             _runRequested = true;
 
-            // 诊断：打印窗口滑动证据（前 3 样本 + 头部位置 + 累计计数），判断窗口是否冻结
-            if (_inferenceCount <= 12)
+            // 诊断：打印窗口滑动证据（前 3 样本 + 头部位置 + 补零量），判断窗口是否冻结。
+            // 逐推理日志量大，归到 verboseLogging。
+            if (_config != null && _config.verboseLogging && _inferenceCount <= 12)
             {
                 Debug.Log($"[A2F窗口] Tick 触发: ringTotal={_ringTotal} consumed={_consumedUntil} ringHead={_ringHead} " +
-                          $"start={start} win[0..2]={_window[0]:F4},{_window[1]:F4},{_window[2]:F4} win[8000]={_window[8000]:F4}");
+                          $"start={start} 左补零={leftZero} 右补零={rightZero} " +
+                          $"win[0..2]={_window[0]:F4},{_window[1]:F4},{_window[2]:F4} win[8000]={_window[8000]:F4}");
             }
         }
 
@@ -669,11 +740,27 @@ namespace Audio2Face
             // 前几个含 padding 的窗口被当成正式帧输出。改用窗口右端游标判断更可靠。
             bool warmup = _windowEnd < _info.BufferLength;
 
+            // 一次性对齐自检：首个正式帧的音频时刻必须 == TargetOffsetSamples（0.25s）。
+            // 这里是「口型比声音早/晚 N 秒」类问题的终局证据 —— 差多少秒一目了然，
+            // 比 [A2F同步] 那条（控制回路自证，恒≈0，发现不了常量偏移）有用得多。
+            if (!warmup && !_alignLogged)
+            {
+                _alignLogged = true;
+                long ws = _windowEnd - _info.BufferLength;
+                long firstSample = ws + (long)(left * (float)_info.BufferLength / _info.FramesPerInference);
+                float inv = _info.SampleRate > 0 ? 1f / _info.SampleRate : 1f / 16000f;
+                long diff = firstSample - _info.TargetOffsetSamples;
+                Debug.Log($"[A2F对齐] 首个正式帧: 窗口=[{ws},{_windowEnd}) 首帧样本={firstSample} " +
+                          $"(t={firstSample * inv:F3}s) | 期望 TargetOffset={_info.TargetOffsetSamples} " +
+                          $"(t={_info.TargetOffsetSamples * inv:F3}s) | 偏差={diff} 样本 ({diff * inv * 1000f:F0}ms)" +
+                          (diff != 0 ? "  ⚠ 口型与声音有常量偏移" : "  ✓ 对齐"));
+            }
+
             if (!warmup)
             {
                 // 逐帧诊断：只看每次推理的第一帧（f==left）会漏掉 29/30 的数据，
                 // 「一抽一抽」的单帧尖刺必须看连续序列才能发现。
-                bool trace = _config.debugMode && _windowEnd < _info.BufferLength * 4;
+                bool trace = _config.debugMode && _config.verboseLogging && _windowEnd < _info.BufferLength * 4;
                 var sb = trace ? new System.Text.StringBuilder() : null;
                 int iJaw = -1, iClose = -1, iBlinkL = -1, iBlinkR = -1;
                 if (_skinSolver != null)
@@ -714,7 +801,7 @@ namespace Audio2Face
                     var skin = SolveSkinAt(row);
                     int tongueCount = 0;
                     float[] tongue = null;
-                    if (_tongueSolver.IsReady)
+                    if (SolveTongueNow)
                     {
                         tongue = SolveTongueAt(row);
                         tongueCount = _tongueSolver.NumPoses;
@@ -736,7 +823,7 @@ namespace Audio2Face
                     TraceMouthChannels(skin, tongue);
 
                     // 诊断：打印前 20 次推理的基线减法后权重
-                    if (_inferenceCount <= 30 && f == left)
+                    if (_inferenceCount <= 30 && f == left && _config.verboseLogging)
                     {
                         float sum = 0f;
                         if (skin != null) { for (int i = 0; i < skin.Length; i++) sum += Mathf.Abs(skin[i]); }
@@ -756,13 +843,17 @@ namespace Audio2Face
 
                     }
 
-                    // 眨眼只在少数帧上非零，单独打一条。不能放进上面的 sb 块 ——
-                    // trace 只覆盖前 2 秒音频，而眨眼最早也要 2.5s 后才出现，放进去永远看不到。
-                    if (_config.debugMode && blinkOff > 0.01f && skin != null)
-                        Debug.Log($"[A2F眨眼] t={(winStart + f * samplesPerFrame) * invRate:F2}s " +
-                                  $"blinkOffset={blinkOff:F2} → eyeBlink L=" +
-                                  (iBlinkL >= 0 && iBlinkL < skin.Length ? skin[iBlinkL].ToString("F3") : "-") +
-                                  " R=" + (iBlinkR >= 0 && iBlinkR < skin.Length ? skin[iBlinkR].ToString("F3") : "-"));
+                    // 眨眼只在少数帧上非零。原来是「每帧一条」（一次眨眼 9~10 条，占整份日志
+                    // 的 1/6，把编辑器主线程拖出过秒级卡顿），现在累加成「每次推理一条」。
+                    if (_config.debugMode && _config.verboseLogging && blinkOff > 0.01f && skin != null)
+                    {
+                        float tf = (winStart + f * samplesPerFrame) * invRate;
+                        if (_blinkFrames == 0) _blinkT0 = tf;
+                        _blinkT1 = tf;
+                        if (iBlinkL >= 0 && iBlinkL < skin.Length && skin[iBlinkL] > _blinkPeakL) _blinkPeakL = skin[iBlinkL];
+                        if (iBlinkR >= 0 && iBlinkR < skin.Length && skin[iBlinkR] > _blinkPeakR) _blinkPeakR = skin[iBlinkR];
+                        _blinkFrames++;
+                    }
 
                     lock (_frameLock)
                     {
@@ -770,7 +861,12 @@ namespace Audio2Face
                         int dst = slot * _frameStride;
 
                         for (int i = 0; i < SkinPoseCount; i++) _frameStore[dst + i] = skin != null ? skin[i] : 0f;
-                        for (int i = 0; i < tongueCount; i++) _frameStore[dst + SkinPoseCount + i] = tongue[i];
+                        // 舌头槽位（帧布局里恒保留）在停算时必须显式清零：
+                        // _frameStore 是环形复用缓冲，不写就留着上一圈的旧权重。
+                        if (tongueCount > 0)
+                            for (int i = 0; i < tongueCount; i++) _frameStore[dst + SkinPoseCount + i] = tongue[i];
+                        else
+                            for (int i = 0; i < TonguePoseCount; i++) _frameStore[dst + SkinPoseCount + i] = 0f;
 
                         // jaw 7 + eyes 4
                         int jb = SkinPoseCount + TonguePoseCount;
@@ -795,6 +891,15 @@ namespace Audio2Face
                 }
 
                 if (sb != null) Debug.Log(sb.ToString());
+
+                if (_blinkFrames > 0)
+                {
+                    Debug.Log($"[A2F眨眼] t={_blinkT0:F2}~{_blinkT1:F2}s 共 {_blinkFrames} 帧 " +
+                              $"峰值 eyeBlink L={_blinkPeakL:F3} R={_blinkPeakR:F3}");
+                    _blinkFrames = 0;
+                    _blinkPeakL = 0f;
+                    _blinkPeakR = 0f;
+                }
             }
 
             if (postSw != null && !warmup)
@@ -891,13 +996,13 @@ namespace Audio2Face
 
             // 标定期间必须关掉旧基线，否则解出来的已经是减过基线的结果，会二次相减
             _skinSolver.WeightBaseline = null;
-            if (_tongueSolver.IsReady) _tongueSolver.WeightBaseline = null;
+            if (SolveTongueNow) _tongueSolver.WeightBaseline = null;
 
             _skinAnimator?.Reset();
             // 标定静息脸时眼睛必须完全睁开，否则基线里会混进闭眼量
             _skinAnimator?.SetBlinkOffset(0f);
             _skinSolver.Reset();
-            if (_tongueSolver.IsReady) _tongueSolver.Reset();
+            if (SolveTongueNow) _tongueSolver.Reset();
 
             var acc = new float[SkinPoseCount];
             for (int f = 0; f < center; f++)
@@ -910,7 +1015,7 @@ namespace Audio2Face
             for (int i = 0; i < SkinPoseCount; i++) acc[i] *= inv;
             _skinSolver.WeightBaseline = acc;
 
-            if (_tongueSolver.IsReady)
+            if (SolveTongueNow)
             {
                 var tacc = new float[TonguePoseCount];
                 for (int f = 0; f < center; f++)
@@ -926,7 +1031,7 @@ namespace Audio2Face
             // 清掉时间正则状态：标定帧的 _prevWeights 不该带进正式播放
             _skinAnimator?.Reset();
             _skinSolver.Reset();
-            if (_tongueSolver.IsReady) _tongueSolver.Reset();
+            if (SolveTongueNow) _tongueSolver.Reset();
 
             return acc;
         }
@@ -1079,6 +1184,7 @@ namespace Audio2Face
             _consumedUntil = 0;
             _inferenceCount = 0;
             _windowEnd = 0;
+            _alignLogged = false;
             lock (_frameLock)
             {
                 _frameHead = 0;

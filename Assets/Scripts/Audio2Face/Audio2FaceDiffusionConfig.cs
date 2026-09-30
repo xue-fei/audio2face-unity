@@ -212,8 +212,18 @@ namespace Audio2Face
         [Tooltip("找不到同名 blendshape 时是否逐下标回退（有错位风险）")]
         public bool fallbackToIndexMapping = false;
 
+        [Header("音画同步")]
+        [Tooltip("人工微调偏移（秒）。正数 = 口型整体延后（嘴动得更晚），负数 = 提前。\n" +
+                 "模型结构自带的 0.25s（targetOffset）已自动处理，这里只用于补偿\n" +
+                 "音频输出延迟 / 观感微调，默认 0。±0.05s 以内肉眼基本看不出。")]
+        public float syncOffsetSec = 0f;
+
         [Header("调试")]
         public bool debugMode = false;
+        [Tooltip("debugMode 打开时的「深挖级」日志：[A2F逐帧]（每次推理 30 行）、[A2F眨眼]、[A2F窗口]、[A2F权重]。\n" +
+                 "这些是逐帧/逐推理的高频日志，日志量占大头，会把编辑器主线程拖出秒级卡顿 ——\n" +
+                 "只在真要逐帧排查时开，平时留 false（心跳类日志仍由 debugMode 控制）。")]
+        public bool verboseLogging = false;
 
         public string ModelFolderFullPath => System.IO.Path.Combine(Application.streamingAssetsPath, modelFolder);
     }
