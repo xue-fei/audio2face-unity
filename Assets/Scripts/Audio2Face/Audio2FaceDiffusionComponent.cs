@@ -1321,6 +1321,57 @@ namespace Audio2Face
                 yield return null;
             }
             Debug.Log($"[A2F推流] 音频推流结束，共 push {pushCount} 次，总样本={pcm.Length}");
+
+            // 阶段 4：尾部静音 padding —— 少了这段，嘴会冻在最后一个音节上张着
+            //
+            // 模型每次吃 1s 窗口、只输出中心 30 帧，中心帧覆盖的音频区间是
+            // [窗口右端-12000, 窗口右端-4000]（start = 右端-16000，帧 f 时刻 = start + f*266.7）。
+            // 推到 pcm.Length 就停的话，最后一批帧最多落在「音频末尾前 4000 样本」——
+            // 也就是最后一个音节还没说完的位置。之后再没有新样本，窗口凑不出来，
+            // 队列被消费完就永久冻在那个张嘴姿态上，看起来就是「播完不闭嘴」。
+            // 补一整个窗口的静音，模型才能「看到」说完之后的安静，把嘴合上。
+            int padTotal = _pipeline.Info.BufferLength;
+            if (padTotal > 0)
+            {
+                var silence = new float[4096];
+                int padCursor = 0;
+                float padDeadline = Time.realtimeSinceStartup + 15f;
+                while (padCursor < padTotal && !_destroyed)
+                {
+                    // 这段没有播放时钟可依赖，只能靠 ring 容量背压
+                    while (_pipeline.UnconsumedAudioSamples >= _pipeline.RingCapacity)
+                    {
+                        if (Time.realtimeSinceStartup > padDeadline) break;
+                        yield return null;
+                    }
+                    if (_pipeline.UnconsumedAudioSamples >= _pipeline.RingCapacity) break;
+
+                    int chunk = Mathf.Min(4096, padTotal - padCursor);
+                    _pipeline.PushAudio(silence, 0, chunk);
+                    _pipeline.Tick();
+                    padCursor += chunk;
+                    yield return null;
+                }
+                Debug.Log($"[A2F推流] 尾部静音 padding 完成: {padCursor}/{padTotal} 样本" +
+                          (padCursor < padTotal ? "（ring 背压超时，可能不够）" : ""));
+            }
+
+            // 等尾帧被消费完。音频播完后 Update 里 isPlaying=false，会切到固定帧率累加器分支
+            // 继续以 60fps 排空队列，所以这里只等它走完，不要自己抢着出帧。
+            float drainDeadline = Time.realtimeSinceStartup + 15f;
+            while (!_destroyed && _pipeline.PendingFrames > 0 && Time.realtimeSinceStartup < drainDeadline)
+                yield return null;
+
+            // 兜底：不管队列有没有排干净，最后写一批全零帧。
+            // 静息基线已经在 CalibrateRestPose 里减掉了，全零权重 = 中性脸 = 闭合。
+            // 写 30 次而不是 1 次：animator 带指数平滑（smoothing），单次写入顶点只会往中性
+            // 走一小步，连续写才能收敛到底。这 30 次只是推进内部状态，只有最后一次会被看到。
+            if (!_destroyed)
+            {
+                Array.Clear(_frame, 0, _frame.Length);
+                for (int i = 0; i < 30; i++) ApplyFrame(_frame);
+                Debug.Log($"[A2F推流] 收尾：剩余队列={_pipeline.PendingFrames} 帧，已写入闭合帧");
+            }
         }
 
         private static float[] Resample(float[] data, int srcRate, int dstRate)
