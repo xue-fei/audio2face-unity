@@ -102,7 +102,7 @@ namespace Audio2Face
         /// </summary>
         private SkinnedMeshRenderer ResolveTarget()
         {
-            var smr = GetComponent<SkinnedMeshRenderer>();
+            var smr = Target;
             if (smr == null) smr = GetComponentInChildren<SkinnedMeshRenderer>(true);
             if (smr != null) return smr;
 
@@ -242,7 +242,7 @@ namespace Audio2Face
             _live.Sort((a, b) => b.Value.CompareTo(a.Value));
             _rawPeak = rawPeak;
 
-            // 心跳（无论 debugMode）：这条出现 = OnFrameApplied 在触发、帧在往 Target 写。
+            // 心跳（verboseLogging 开启时）：这条出现 = OnFrameApplied 在触发、帧在往 Target 写。
             // 完全没有这条 = Component.ApplyFrame 根本没跑到（查它的 RealtimePlayback / 音频时钟 / _holdFrames）。
             // 有这条但 jawOpen≈0 = 帧在流、只是权重被基线/幅度压扁（去调 jawOpenGain / stylization）。
             // 若与 [A2F写入] 的 jawOpen 峰值对不上（写入≈1、这里≈0.x）→ pose 序又不同步了，查 EnsureMap。
@@ -251,7 +251,7 @@ namespace Audio2Face
             int jawIdx = IndexOf("jawOpen");
             if (jawIdx >= 0 && jawIdx < frame.Length) jawW = Mathf.Clamp01(frame[jawIdx] * gain);
             if (jawW > _driveJawPeak) _driveJawPeak = jawW;
-            if (_driveFrames % 30 == 0)
+            if (Driver != null && Driver.Config != null && Driver.Config.verboseLogging && _driveFrames % 30 == 0)
             {
                 Debug.Log($"[A2F驱动] OnDriverFrame 已写 {_driveFrames} 帧 | 本秒 jawOpen 写入峰值={_driveJawPeak:F2} (DriveGain×{gain:F2})" +
                           $" | 最近帧 jawOpen={jawW:F2} | 本帧非零 pose 数={_live.Count}" +

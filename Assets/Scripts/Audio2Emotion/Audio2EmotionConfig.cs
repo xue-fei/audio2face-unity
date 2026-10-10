@@ -63,6 +63,9 @@ namespace Audio2Emotion
         public float preferredEmotionStrength = 0.5f;
 
         [Tooltip("偏好情绪向量")]
+        // [UnityEngine.NonReorderable]：关掉 UIElements 虚拟列表渲染，避免 Unity 2021.3 Inspector
+        // 重绘时 SerializedObjectList.get_Count 抛 NullReferenceException（选中本组件时控制台刷 NRE，不影响运行时）。
+        [UnityEngine.NonReorderable]
         public float[] preferredEmotion = new float[10];
 
         [Header("调试")]

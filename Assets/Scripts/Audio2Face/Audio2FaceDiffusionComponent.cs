@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Audio2Emotion;
 using UnityEngine;
 
 namespace Audio2Face
@@ -33,10 +34,11 @@ namespace Audio2Face
                  "关闭会让静音时仍有恒定偏置权重，容易表现为无语音关联的挤眉微张。")]
         public bool CalibrateRestPoseOnStart = true;
 
-        [Header("骨骼驱动（SDK 的 jaw / eyes 输出，不走 blendshape）")]
-        [Tooltip("下颌骨。jaw 段（15 维）解出的 4x4 刚体变换会转成「绕轴角度 + 位移」。\n" +
-                 "牙齿挂在骨骼上，只有这一步能让它跟着嘴动 —— 纯 blendshape 是带不动牙齿的。\n" +
-                 "纯 blendshape 网格（没有骨骼）不用填。")]
+        [Header("骨骼驱动（仅限有独立下颌骨的角色）")]
+        [Tooltip("下颌骨。jaw 段解出的刚体变换会转成「绕轴角度 + 位移」，牙齿挂在骨骼上随下巴刚体运动。\n" +
+                 "仅当模型有独立下颌骨时才填（如多骨 rig）。\n" +
+                 "mark_arkit_v3 这类「单骨 rig + 牙齿靠 blendshape」的头部模型【不要填】，\n" +
+                 "它的下牙张合由 c_bottomDenture_hi 的 jawOpen blendshape 驱动（见下方 LowerTeethJawOpenGain）。")]
         public Transform JawBone;
         [Tooltip("下颌旋转轴（骨骼局部空间）。多数角色是 X 轴；转反了把 JawAngleSign 取 -1")]
         public Vector3 JawRotationAxis = new Vector3(1f, 0f, 0f);
@@ -61,15 +63,41 @@ namespace Audio2Face
         [Header("事件")]
         public UnityEngine.Events.UnityEvent<float[]> OnFrameApplied;
 
+        [Header("目标网格（mark_arkit_v3 三段式）")]
+        [Tooltip("头部水密网格：c_headWatertight_hi。承载除下牙/舌头以外的所有 skin pose（52 ARKit 含 jawOpen 等）。")]
+        public SkinnedMeshRenderer HeadMesh;
+        [Tooltip("下牙网格：c_bottomDenture_hi。承载 jawOpen / jawForward / jawLeft / jawRight 四个下颌 pose。")]
+        public SkinnedMeshRenderer TeethMesh;
+        [Tooltip("舌头网格：c_tongue_hi。承载 16 个 tongue pose（tongueOut / tongueTipUp / tongueRollUp …）。")]
+        public SkinnedMeshRenderer TongueMesh;
+
+        [Header("下牙增益")]
+        [Tooltip("TeethMesh 上 jawOpen 的单独增益。1 = 与嘴唇同幅度；下牙张得不够就调大（2~3），过分开合就调小。")]
+        public float LowerTeethJawOpenGain = 2.0f;
+
+        [Header("情绪 (Emotion) 驱动")]
+        [Tooltip("接 Audio2Emotion 组件：实时识别音频情绪并喂入 A2F 模型的 10 维 emotion 条件输入。" +
+                 "A2E 的 FinalOutput 已是 10 维且下标与 A2F 对齐（angry→1, happy→6 joy, sad→9 …），" +
+                 "直接对接无需转换。留空则只用下面的手动情绪。")]
+        public Audio2EmotionComponent EmotionDetector;
+        [Tooltip("勾选后忽略 A2E 实时识别，改用 ManualEmotion 向量（用于验证模型是否真的吃 emotion 条件）。")]
+        public bool UseManualEmotion = false;
+        [Tooltip("手动情绪 10 维，顺序同 A2F：0 amazement / 1 anger / 2 cheekiness / 3 disgust / " +
+                 "4 fear / 5 grief / 6 joy / 7 outofbreath / 8 pain / 9 sadness。例如 joy 拉满 = ManualEmotion[6]=1。")]
+        // [NonReorderable]：关掉 UIElements 的虚拟列表（ReorderableList/ListView）渲染，
+        // 避免 Unity 2021.3 在 Inspector 重绘时 SerializedObjectList.get_Count 抛 NullReferenceException
+        // （选中本组件时控制台刷一堆 NRE，但不影响运行时）。
+        [NonReorderable]
+        public float[] ManualEmotion = new float[10];
+
         private Audio2FaceDiffusionPipeline _pipeline;
-        private SkinnedMeshRenderer _skinnedMesh;
 
         /// <summary>一张网格的 pose → blendshape 下标映射。</summary>
         private sealed class MeshBinding
         {
             public SkinnedMeshRenderer renderer;
-            public int[] skin;
-            public int[] tongue;
+            public int[] skin;      // skin pose → 网格 blendshape 下标
+            public int[] tongue;    // tongue pose → 网格 blendshape 下标（仅舌头网格）
         }
 
         /// <summary>
@@ -166,9 +194,6 @@ namespace Audio2Face
         public string[] PoseNames => _pipeline != null && _pipeline.SkinSolver != null
             ? _pipeline.SkinSolver.PoseNames : null;
 
-        /// <summary>实际驱动 blendshape 的网格。</summary>
-        public SkinnedMeshRenderer TargetMesh => _skinnedMesh;
-
         IEnumerator Start()
         {
             if (Config != null && Config.Migrate())
@@ -176,15 +201,13 @@ namespace Audio2Face
                           "清掉了旧版本残留在场景里的 lowerFaceStrength / jawOpenToLipOpen 等值 —— " +
                           "Unity 会一直用「字段首次出现时」的序列化值，改代码默认值不会生效。");
 
-            if (Config.autoApplyToSkinnedMesh)
-            {
-                _skinnedMesh = GetComponent<SkinnedMeshRenderer>();
-                if (_skinnedMesh == null) _skinnedMesh = GetComponentInChildren<SkinnedMeshRenderer>();
-                if (_skinnedMesh == null) _skinnedMesh = TryUpgradeMeshRenderer();
-                if (_skinnedMesh == null)
-                    Debug.LogWarning("[Audio2Face] 没有找到 SkinnedMeshRenderer（也找不到可升级的 MeshRenderer），" +
-                                     "blendshape 不会生效");
-            }
+            // ── 验证三段式 SMR ──
+            if (HeadMesh == null)
+                Debug.LogWarning("[Audio2Face] HeadMesh 未设置 —— 头部口型不会动。请把 c_headWatertight_hi 拖入 HeadMesh 字段。");
+            if (TeethMesh == null)
+                Debug.LogWarning("[Audio2Face] TeethMesh 未设置 —— 下牙不会动。请把 c_bottomDenture_hi 拖入 TeethMesh 字段。");
+            if (TongueMesh == null)
+                Debug.LogWarning("[Audio2Face] TongueMesh 未设置 —— 舌头不会动。请把 c_tongue_hi 拖入 TongueMesh 字段。");
 
             // ── ONNX 异步加载 ──
             // new InferenceSession(network.onnx) 是整套初始化里最重的一步：读几百 MB 权重
@@ -232,44 +255,89 @@ namespace Audio2Face
                 yield break;
             }
 
-            if (_skinnedMesh != null)
+            // ── 绑定：三段式 SMR ──
+            // HeadMesh（c_headWatertight_hi）：承载 52 ARKit skin pose（含 jawOpen 等嘴部形状）
+            // TeethMesh（c_bottomDenture_hi）：承载 4 个下颌 pose（jawOpen/jawForward/jawLeft/jawRight）
+            // TongueMesh（c_tongue_hi）：承载 16 个 tongue pose
+            // 三段彼此独立，Inspector 分别拖入，不靠自动检测。
+
+            if (_pipeline != null && _pipeline.SkinSolver != null)
+                _iJawOpenCoeff = Array.IndexOf(_pipeline.SkinSolver.PoseNames, "jawOpen");
+
+            // 头部：全部 52 个 skin pose
+            if (HeadMesh != null)
             {
-                // 收集全部带 blendshape 的网格（脸 / 舌头 / 牙齿 / 眼球）。
-                // fallbackToIndexMapping 只对主网格生效：给舌头网格按 skin pose 下标硬套会直接错位。
-                var all = GetComponentsInChildren<SkinnedMeshRenderer>(true);
-                foreach (var r in all)
+                var binding = new MeshBinding { renderer = HeadMesh };
+                binding.skin = ArkItBlendshapeNames.MapPoses(
+                    HeadMesh.sharedMesh, _pipeline.SkinSolver.PoseNames,
+                    Config.fallbackToIndexMapping, out int matched, out string report);
+                if (Config.debugMode)
+                    Debug.Log($"[A2F Map] <{HeadMesh.name}> skin 匹配 {matched}/{_pipeline.SkinSolver.PoseNames.Length}\n{report}");
+                _bindings.Add(binding);
+            }
+
+            // 下牙：仅 4 个下颌 pose
+            if (TeethMesh != null)
+            {
+                var binding = new MeshBinding { renderer = TeethMesh };
+                // 只映射 jaw 相关的 4 个 pose，其余 skin pose 置 -1
+                var jawPoses = new[] { "jawOpen", "jawForward", "jawLeft", "jawRight" };
+                var allSkinNames = _pipeline.SkinSolver.PoseNames;
+                binding.skin = new int[allSkinNames.Length];  // 全量长度，非 jaw 的置 -1
+                for (int i = 0; i < binding.skin.Length; i++) binding.skin[i] = -1;
+                foreach (var jp in jawPoses)
                 {
-                    if (r == null || r.sharedMesh == null || r.sharedMesh.blendShapeCount == 0) continue;
-                    AddBinding(r, r == _skinnedMesh);
+                    int poseIdx = Array.IndexOf(allSkinNames, jp);
+                    if (poseIdx >= 0)
+                    {
+                        int bsIdx = ArkItBlendshapeNames.FindBlendShapeIndex(TeethMesh.sharedMesh, jp);
+                        binding.skin[poseIdx] = bsIdx;
+                        if (Config.debugMode && bsIdx >= 0)
+                            Debug.Log($"[A2F Map] <{TeethMesh.name}> {jp} → #{bsIdx}");
+                    }
                 }
+                _bindings.Add(binding);
+            }
 
-                int totalSkin = 0;
-                int totalTongue = 0;
-                foreach (var b in _bindings)
+            // 舌头：仅 16 个 tongue pose
+            if (TongueMesh != null && _pipeline.TongueSolver != null && _pipeline.TongueSolver.IsReady)
+            {
+                var binding = new MeshBinding { renderer = TongueMesh };
+                binding.tongue = ArkItBlendshapeNames.MapPoses(
+                    TongueMesh.sharedMesh, _pipeline.TongueSolver.PoseNames, false,
+                    out int tmatched, out string treport);
+                if (Config.debugMode)
+                    Debug.Log($"[A2F Map] <{TongueMesh.name}> tongue 匹配 {tmatched}/{_pipeline.TongueSolver.PoseNames.Length}\n{treport}");
+                _bindings.Add(binding);
+            }
+
+            // 统计
+            int totalSkin = 0, totalTongue = 0;
+            foreach (var b in _bindings)
+            {
+                totalSkin += CountHit(b.skin);
+                totalTongue += CountHit(b.tongue);
+            }
+            Debug.Log($"[A2F绑定] HeadMesh={(HeadMesh != null ? HeadMesh.name : "未设置")} " +
+                      $"TeethMesh={(TeethMesh != null ? TeethMesh.name : "未设置")} " +
+                      $"TongueMesh={(TongueMesh != null ? TongueMesh.name : "未设置")} " +
+                      $"| skin 命中 {totalSkin} 通道, tongue 命中 {totalTongue} 通道");
+
+            if (totalTongue == 0)
+                _pipeline.SetTongueBound(false);
+
+            BuildLipProbe();
+            SelfTestMouthOpen();
+
+            // ── 情绪驱动：接 Audio2Emotion 实时 + 手动覆盖 ──
+            if (_pipeline != null)
+            {
+                if (EmotionDetector != null)
                 {
-                    totalSkin += CountHit(b.skin);
-                    totalTongue += CountHit(b.tongue);
+                    EmotionDetector.OnEmotionDetected.AddListener(OnA2EEmotion);
+                    Debug.Log("[A2F情绪] 已接 Audio2Emotion：将把实时识别到的 10 维情绪喂入模型 emotion 条件输入");
                 }
-                if (totalSkin == 0)
-                    Debug.LogError("[Audio2Face] 0 个 pose 能对应上网格 blendshape，口型一定不会动。" +
-                                   "看上面的映射表检查命名（前缀 / _L _R / Left Right）。");
-                else if (Config.debugMode)
-                    Debug.Log($"[Audio2Face] 共绑定 {_bindings.Count} 张网格，skin 命中 {totalSkin} 通道，tongue 命中 {totalTongue} 通道");
-
-                // 没有任何网格带 tongue 形状 → 解出来的 16 路权重没有落点，
-                // 整段 animator + BVLS（≈1.25ms/帧，占后处理 130ms 的 29%）纯白干，直接停掉。
-                // 帧布局不变（舌头槽位保留并清零），下游按 pose 名取值的映射不受影响。
-                if (totalTongue == 0 && _bindings.Count > 0)
-                    _pipeline.SetTongueBound(false);
-
-                LogMouthBinding();
-                if (JawBone == null)
-                    Debug.LogWarning("[A2F骨骼] 没填 Jaw Bone —— 下颌刚体变换没有落点，挂在骨骼上的牙齿不会动。" +
-                                     "A2F 的 jaw 段是 5 个标记点拟合出的刚体变换（角度 + 平移），只能作用在骨骼上， " +
-                                     "blendshape 带不动它。如果 Sloth_Head2 是纯 blendshape 网格就忽略这条。");
-
-                BuildLipProbe();
-                SelfTestMouthOpen();
+                if (UseManualEmotion) ApplyManualEmotion();
             }
 
             if (JawBone != null)
@@ -291,112 +359,6 @@ namespace Audio2Face
                 Debug.LogWarning("[Audio2Face] RealtimePlayback = false：Update 不会消费帧队列，" +
                                  "「播放并驱动」/麦克风都不会动嘴（只有测试台的手动扫掠会动）。" +
                                  "这就是「扫掠能张嘴、播放并驱动不张嘴」的典型原因 —— 请把它勾回 true。");
-        }
-
-        /// <summary>给一张网格建 pose → blendshape 映射并登记。</summary>
-        private void AddBinding(SkinnedMeshRenderer r, bool allowFallback)
-        {
-            foreach (var b in _bindings)
-                if (b.renderer == r) return;
-
-            var binding = new MeshBinding { renderer = r };
-            binding.skin = ArkItBlendshapeNames.MapPoses(
-                r.sharedMesh, _pipeline.SkinSolver.PoseNames,
-                allowFallback && Config.fallbackToIndexMapping, out int matched, out string report);
-
-            if (Config.debugMode)
-                Debug.Log($"[A2F Map] <{r.name}> skin 匹配 {matched}/{_pipeline.SkinSolver.PoseNames.Length}\n{report}");
-
-            if (_pipeline.TongueSolver != null && _pipeline.TongueSolver.IsReady)
-            {
-                binding.tongue = ArkItBlendshapeNames.MapPoses(
-                    r.sharedMesh, _pipeline.TongueSolver.PoseNames, false,
-                    out int tmatched, out string treport);
-                if (Config.debugMode && tmatched > 0)
-                    Debug.Log($"[A2F Map] <{r.name}> tongue 匹配 {tmatched}/{_pipeline.TongueSolver.PoseNames.Length}\n{treport}");
-            }
-
-            _bindings.Add(binding);
-        }
-
-        private static int CountHit(int[] map)
-        {
-            if (map == null) return 0;
-            int c = 0;
-            for (int i = 0; i < map.Length; i++)
-                if (map[i] >= 0) c++;
-            return c;
-        }
-
-        /// <summary>
-        /// 打印「嘴部 / 舌头」关键通道在所有网格上的绑定情况。
-        ///
-        /// 「下巴动了但嘴没张开 / 看不到舌头」有相当一部分根本不是求解问题，而是网格上没有
-        /// 对应的 blendshape —— 权重算得再对也驱动不了。先确认这一层，再谈调参。
-        /// </summary>
-        private void LogMouthBinding()
-        {
-            if (_bindings.Count == 0 || _pipeline == null) return;
-
-            var skinNames = _pipeline.SkinSolver != null ? _pipeline.SkinSolver.PoseNames : null;
-            var tongueNames = _pipeline.TongueSolver != null ? _pipeline.TongueSolver.PoseNames : null;
-            string[] keys =
-            {
-                "jawOpen", "mouthClose", "mouthFunnel",
-                "mouthLowerDownLeft", "mouthLowerDownRight",
-                "mouthUpperUpLeft", "mouthUpperUpRight",
-                "mouthPressLeft", "mouthPressRight",
-                "mouthShrugLower", "mouthRollLower"
-            };
-
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine($"[A2F绑定] 共 {_bindings.Count} 张网格参与驱动");
-            foreach (var b in _bindings)
-            {
-                var m = b.renderer.sharedMesh;
-                sb.AppendLine($"  <{b.renderer.name}> mesh={m.name} 形状={m.blendShapeCount} " +
-                              $"skin命中={CountHit(b.skin)} tongue命中={CountHit(b.tongue)}");
-            }
-
-            sb.AppendLine("  嘴部关键通道 → 实际生效的网格形状");
-            int miss = 0;
-            foreach (var key in keys)
-            {
-                int p = skinNames != null ? Array.IndexOf(skinNames, key) : -1;
-                string hit = "✗ 所有网格都没有（该通道不会动）";
-                bool any = false;
-                if (p >= 0)
-                {
-                    foreach (var b in _bindings)
-                    {
-                        if (b.skin == null || p >= b.skin.Length || b.skin[p] < 0) continue;
-                        hit = $"→ <{b.renderer.name}> #{b.skin[p]:D2} {b.renderer.sharedMesh.GetBlendShapeName(b.skin[p])}";
-                        any = true;
-                        break;
-                    }
-                }
-                if (!any) miss++;
-                sb.AppendLine($"    {key,-20} {hit}");
-            }
-
-            var hits = new List<string>();
-            foreach (var b in _bindings)
-            {
-                if (b.tongue == null || tongueNames == null) continue;
-                for (int i = 0; i < b.tongue.Length && i < tongueNames.Length; i++)
-                    if (b.tongue[i] >= 0 && !hits.Contains(tongueNames[i])) hits.Add(tongueNames[i]);
-            }
-            sb.AppendLine($"  舌头通道命中 {hits.Count}/{(_pipeline.TonguePoseCount)}: " +
-                          (hits.Count > 0 ? string.Join(", ", hits) : "（无）"));
-            Debug.Log(sb.ToString());
-
-            if (hits.Count == 0)
-                Debug.LogWarning("[A2F绑定] 没有任何网格带舌头 blendshape —— 舌头不可能动。" +
-                                 "Audio2Face 的 16 个 tongue pose（tongueTipUp / tongueRollUp / tongueIn ...）" +
-                                 "需要在网格上有同名或同义形状；没有的话要么补形状，要么放弃露舌。");
-            if (miss > 0)
-                Debug.LogWarning($"[A2F绑定] {miss} 个嘴部关键通道在所有网格上都缺失，张嘴幅度会打折。" +
-                                 "看上面的表补形状或改命名（前缀 / _L _R / Left Right）。");
         }
 
         /// <summary>
@@ -444,6 +406,14 @@ namespace Audio2Face
             }
         }
 
+        private static int CountHit(int[] arr)
+        {
+            if (arr == null) return 0;
+            int n = 0;
+            for (int i = 0; i < arr.Length; i++) if (arr[i] >= 0) n++;
+            return n;
+        }
+
         private static float Sum(float[] a)
         {
             float s = 0f;
@@ -454,6 +424,7 @@ namespace Audio2Face
         void OnDestroy()
         {
             _destroyed = true;
+            if (EmotionDetector != null) EmotionDetector.OnEmotionDetected.RemoveListener(OnA2EEmotion);
             StopMicrophone();
             _pipeline?.Dispose();
             _pipeline = null;
@@ -543,6 +514,8 @@ namespace Audio2Face
         private void ApplyFrame(float[] frame)
         {
             int tongueBase = _pipeline != null ? _pipeline.SkinPoseCount : 0;
+            // 诊断：前 3 帧打印 TeethMesh 的 jawOpen 写入值
+            bool diag = (_applyFrames < 3);
             for (int t = 0; t < _bindings.Count; t++)
             {
                 var b = _bindings[t];
@@ -550,11 +523,20 @@ namespace Audio2Face
 
                 if (b.skin != null)
                 {
+                    bool isTeeth = (b.renderer == TeethMesh);
                     for (int i = 0; i < b.skin.Length; i++)
                     {
                         int bi = b.skin[i];
                         if (bi < 0) continue;
-                        b.renderer.SetBlendShapeWeight(bi, Mathf.Clamp(frame[i] * Strength, 0f, 1f) * 100f);
+                        float w = Mathf.Clamp(frame[i] * Strength, 0f, 1f) * 100f;
+                        // TeethMesh 的 jawOpen：单独增益
+                        if (isTeeth && i == _iJawOpenCoeff)
+                        {
+                            w *= LowerTeethJawOpenGain;
+                            if (diag || (Config.verboseLogging && (_applyFrames % 30 == 0)))
+                                Debug.Log($"[A2F下牙] frame#{_applyFrames} {b.renderer.name}.jawOpen(#{bi}) = {w:F2}% (raw={frame[i]:F3} × Strength={Strength:F2} × Gain={LowerTeethJawOpenGain:F2})");
+                        }
+                        b.renderer.SetBlendShapeWeight(bi, w);
                     }
                 }
 
@@ -607,7 +589,7 @@ namespace Audio2Face
             MeasureMouthAperture(frame);
             SampleRealAperture(frame);
 
-            // 心跳（无论 debugMode）：这条出现 = Component.ApplyFrame 在跑、帧在写 _bindings 网格。
+            // 心跳（verboseLogging 开启时）：这条出现 = Component.ApplyFrame 在跑、帧在写 _bindings 网格。
             // 与 Tester 的 [A2F驱动] 心跳对照就能定位「播放并驱动」：
             //   两条都有 → 帧在流，去 [A2F实测] 看嘴真开没开（没开 = 幅度/基线问题，调 jawOpenGain）。
             //   只有 [A2F写入]、没有 [A2F驱动] → OnFrameApplied 没连上 OnDriverFrame（查 Awake 的 AddListener）。
@@ -618,7 +600,8 @@ namespace Audio2Face
                 float jw = (_iJawOpenCoeff >= 0 && _iJawOpenCoeff < frame.Length)
                     ? Mathf.Clamp(frame[_iJawOpenCoeff] * Strength, 0f, 1f) : -1f;
                 if (jw > _applyJawMax) _applyJawMax = jw;
-                if (++_applyFrames % 60 == 0)
+                _applyFrames++;    // 始终递增（诊断日志依赖它）
+                if (Config.verboseLogging && _applyFrames % 60 == 0)
                 {
                     Debug.Log($"[A2F写入] ApplyFrame 已写 {_applyFrames} 帧 | 本秒写入 _bindings 的 jawOpen 峰值={_applyJawMax:F2}" +
                               $" (Strength={Strength:F2})");
@@ -987,7 +970,7 @@ namespace Audio2Face
             if (!_lipProbeReady || _bakeMesh == null) return;
             if (_bindings.Count == 0 || _lipUpperIdx == null || _lipLowerIdx == null) return;
             // 这条是「嘴到底张没张」的<b>真值</b>（BakeMesh 直接量唇缝），是所有权重/系数推算的最终裁判，
-            // 所以无论 debugMode 都打（每 30 帧烘一次，4855 顶点约 2 次/秒，开销可接受）。
+            // 所以由 verboseLogging 控制（默认 false 不刷屏；每 30 帧烘一次，开销可接受）。
             // 排查「嘴没张开」时必须看它：上限≈静息基准=权重没落到网格上；上限明显抬高=嘴开了、只是幅度/牙齿问题。
             // 若在意这 2 次/秒的 BakeMesh，确认问题后可在此改回 debugMode 门控。
             if (Config == null) return;
@@ -1018,7 +1001,13 @@ namespace Audio2Face
 
                 if (gap < _realMin) _realMin = gap;
                 if (gap > _realMax) _realMax = gap;
-                if (++_realSamples < 8) return;         // 8 次采样 ≈ 4 秒汇总一条
+                if (++_realSamples < 8) return;                                  // 累计够 8 次采样（≈4 秒）才汇总
+                // verboseLogging 关闭时不打日志，但仍每轮清零，避免计数器无限增长、也避免将来打开时先吐一条脏数据
+                if (Config != null && !Config.verboseLogging)
+                {
+                    _realMin = float.MaxValue; _realMax = float.MinValue; _realSamples = 0; _realJawMax = 0f;
+                    return;
+                }
 
                 float pct = 100f / _lipRefHeight;
                 float rest = _lipRestGap * pct;
@@ -1035,35 +1024,6 @@ namespace Audio2Face
             {
                 Debug.LogWarning($"[A2F实测] 烘网格失败: {e.Message}");
             }
-        }
-
-        /// <summary>
-        /// Unity 把「无骨骼的静态网格」导入成 MeshFilter + MeshRenderer，而 blendshape 权重只能写在
-        /// SkinnedMeshRenderer 上（MeshRenderer 没有 SetBlendShapeWeight）。就地加一个 bones 为空的
-        /// SkinnedMeshRenderer 顶替它：纯 blendshape 网格不做蒙皮变换，渲染结果与原来一致。
-        /// </summary>
-        private SkinnedMeshRenderer TryUpgradeMeshRenderer()
-        {
-            var mr = GetComponent<MeshRenderer>();
-            if (mr == null) mr = GetComponentInChildren<MeshRenderer>();
-            if (mr == null) return null;
-
-            var mf = mr.GetComponent<MeshFilter>();
-            if (mf == null || mf.sharedMesh == null || mf.sharedMesh.blendShapeCount == 0) return null;
-
-            var smr = mr.gameObject.AddComponent<SkinnedMeshRenderer>();
-            smr.sharedMesh = mf.sharedMesh;
-            smr.sharedMaterials = mr.sharedMaterials;
-            smr.bones = new Transform[0];
-            smr.rootBone = null;
-            smr.quality = SkinQuality.Bone1;
-            smr.updateWhenOffscreen = true;
-            smr.localBounds = mf.sharedMesh.bounds;
-            mr.enabled = false;
-
-            Debug.Log($"[Audio2Face] 网格没有蒙皮，已自动加 SkinnedMeshRenderer 顶替 MeshRenderer：" +
-                      $"blendshape={mf.sharedMesh.blendShapeCount} 顶点={mf.sharedMesh.vertexCount}");
-            return smr;
         }
 
         #region 音频输入
@@ -1403,6 +1363,49 @@ namespace Audio2Face
         public void SetEmotion(float[] emotions)
         {
             _pipeline?.SetEmotion(emotions);
+        }
+
+        // ── 情绪驱动 ────────────────────────────────────────────────────────────
+        /// <summary>A2E 每帧回调：把识别到的 10 维情绪喂进模型（手动覆盖优先时忽略）。</summary>
+        private void OnA2EEmotion(Audio2EmotionResult result)
+        {
+            if (_pipeline == null || result == null || result.FinalOutput == null) return;
+            if (UseManualEmotion) return;
+            _pipeline.SetEmotion(result.FinalOutput);
+            if (Config != null && Config.debugMode) LogEmotion("A2E", result.FinalOutput);
+        }
+
+        /// <summary>把 ManualEmotion 向量下发到模型。改了 Inspector 里的向量后点此方法（或勾 UseManualEmotion）重发。</summary>
+        [ContextMenu("重新应用手动情绪")]
+        public void ApplyManualEmotion()
+        {
+            if (_pipeline == null || ManualEmotion == null) return;
+            _pipeline.SetEmotion(ManualEmotion);
+            if (Config != null && Config.debugMode) LogEmotion("手动", ManualEmotion);
+        }
+
+        /// <summary>设单个情绪分量并立即下发（验证用：如 SetManualEmotion(6, 1) = joy 拉满）。</summary>
+        public void SetManualEmotion(int index, float value)
+        {
+            if (ManualEmotion == null || index < 0 || index >= ManualEmotion.Length) return;
+            ManualEmotion[index] = value;
+            ApplyManualEmotion();
+        }
+
+        private static readonly string[] EmotionLabels =
+        {
+            "amazement", "anger", "cheekiness", "disgust", "fear",
+            "grief", "joy", "outofbreath", "pain", "sadness"
+        };
+
+        private static void LogEmotion(string tag, float[] e)
+        {
+            if (e == null) return;
+            var active = new System.Collections.Generic.List<string>();
+            for (int i = 0; i < e.Length && i < EmotionLabels.Length; i++)
+                if (e[i] > 1e-3f) active.Add($"{EmotionLabels[i]}={e[i]:F2}");
+            Debug.Log($"[A2F情绪] {tag} 已下发 emotion({e.Length}维): " +
+                      (active.Count > 0 ? string.Join(", ", active) : "(中性/全0)"));
         }
 
         public void ResetPipeline() => _pipeline?.Reset();

@@ -220,9 +220,12 @@ namespace Audio2Face
 
         [Header("调试")]
         public bool debugMode = false;
-        [Tooltip("debugMode 打开时的「深挖级」日志：[A2F逐帧]（每次推理 30 行）、[A2F眨眼]、[A2F窗口]、[A2F权重]。\n" +
-                 "这些是逐帧/逐推理的高频日志，日志量占大头，会把编辑器主线程拖出秒级卡顿 ——\n" +
-                 "只在真要逐帧排查时开，平时留 false（心跳类日志仍由 debugMode 控制）。")]
+        [Tooltip("verboseLogging 打开时的日志分两类：\n" +
+                 " · 运行时心跳（默认 false 不刷屏，排查时勾上）：[A2F写入]（组件每 60 帧）、[A2F驱动]（Tester 每 30 帧）、\n" +
+                 "   [A2F推理]（每 20 次）、[A2F实测]（每 ~4 秒）、[A2F窗口]。这些在播放时持续刷屏，平时留 false 保持控制台安静；\n" +
+                 "   要确认「帧在流 / 嘴在动 / 口型对齐」时再勾。\n" +
+                 " · 深挖级（需同时勾 debugMode）：[A2F逐帧]（每次推理 30 行）、[A2F眨眼]、[A2F权重]。逐推理高频，会拖卡主线程。\n" +
+                 "注：[A2F同步]/[A2F嘴部]/[A2F唇缝]/[A2F自检] 只由 debugMode 控制；[A2F对齐] 只在首帧打一次。")]
         public bool verboseLogging = false;
 
         public string ModelFolderFullPath => System.IO.Path.Combine(Application.streamingAssetsPath, modelFolder);

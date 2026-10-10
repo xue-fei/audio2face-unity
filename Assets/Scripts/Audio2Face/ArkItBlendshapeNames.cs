@@ -44,17 +44,50 @@ namespace Audio2Face
             "noseSneerLeft", "noseSneerRight", "tongueOut",
         };
 
+        /// <summary>
+        /// 舌头 16 个 pose（Audio2Face 求解器舌头段输出的规范名，顺序同 bs_tongue_*.npz 的 poseNames）。
+        /// mark_arkit_v3 的 c_tongue_hi / c_bottomDenture_hi 上正是这 16 个 blendshape
+        /// （tongueTipUp / tongueRollUp / tongueIn ...），没有它们舌头段永远解到 −1、舌头不会动。
+        /// </summary>
+        public static readonly string[] AllTongue =
+        {
+            "tongueTipUp", "tongueTipDown", "tongueTipLeft", "tongueTipRight",
+            "tongueRollUp", "tongueRollDown", "tongueRollLeft", "tongueRollRight",
+            "tongueUp", "tongueDown", "tongueLeft", "tongueRight",
+            "tongueIn", "tongueStretch", "tongueWide", "tongueNarrow",
+        };
+
+        /// <summary>ARKit 52 + 舌头 16 合集（共 68），用于「是否需要补形状」之类的全量判断。</summary>
+        public static readonly string[] All68 = Concat(All52, AllTongue);
+
         private static readonly Dictionary<string, string> Lookup = BuildLookup();
 
         private static Dictionary<string, string> BuildLookup()
         {
             var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var n in All52) d[n] = n;
+            foreach (var n in AllTongue) d[n] = n;   // 舌头段单独一套名，必须认得才能映射
             return d;
+        }
+
+        private static string[] Concat(string[] a, string[] b)
+        {
+            var r = new string[a.Length + b.Length];
+            Array.Copy(a, 0, r, 0, a.Length);
+            Array.Copy(b, 0, r, a.Length, b.Length);
+            return r;
         }
 
         /// <summary>规范名 → 是否属于 ARKit 52。</summary>
         public static bool IsArkitName(string name) => !string.IsNullOrEmpty(name) && Lookup.ContainsKey(name);
+
+        /// <summary>规范名 → 是否属于舌头 16（tongueTipUp … tongueNarrow）。</summary>
+        public static bool IsTongueName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            string c = Canonicalize(name);
+            return c != null && Array.IndexOf(AllTongue, c) >= 0;
+        }
 
         /// <summary>
         /// 把网格上的任意命名归一到规范 ARKit 名。识别不出返回 null。
@@ -204,6 +237,26 @@ namespace Audio2Face
 
             report = sb.ToString();
             return map;
+        }
+
+        /// <summary>
+        /// 在网格上查找单个 pose 名对应的 blendshape 下标（找不到 = -1）。
+        /// 用于 TeethMesh / TongueMesh 这种「只映射少数几个 pose」的场景。
+        /// </summary>
+        public static int FindBlendShapeIndex(Mesh mesh, string poseName)
+        {
+            if (mesh == null || string.IsNullOrEmpty(poseName)) return -1;
+            string canon = Canonicalize(poseName) ?? poseName;
+            for (int i = 0; i < mesh.blendShapeCount; i++)
+            {
+                string meshCanon = Canonicalize(mesh.GetBlendShapeName(i));
+                if (meshCanon != null && string.Equals(meshCanon, canon, StringComparison.OrdinalIgnoreCase))
+                    return i;
+                // 也试原名
+                if (string.Equals(mesh.GetBlendShapeName(i), poseName, StringComparison.OrdinalIgnoreCase))
+                    return i;
+            }
+            return -1;
         }
 
         private static int[] NewFilled(int n, int v)

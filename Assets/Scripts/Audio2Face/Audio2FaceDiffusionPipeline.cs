@@ -714,7 +714,7 @@ namespace Audio2Face
                 // 拆成两段是为了定位瓶颈：ONNX 段是 GPU/推理后端的事，
                 // 后处理段是 30 帧×（skin animator + blendshape 解算）的纯 CPU 活。
                 // 前 3 次每次都打（第 1 次含 CUDA kernel autotune，偏慢是正常的），之后每 20 次一条防刷屏。
-                if (_inferenceCount <= 3 || _inferenceCount % 20 == 0)
+                if (_inferenceCount <= 3 || (_config.verboseLogging && _inferenceCount % 20 == 0))
                     Debug.Log($"[A2F推理] #{_inferenceCount} ONNX={_lastRunMs:F0}ms 后处理={_lastPostMs:F0}ms " +
                               $"合计={_lastInferenceMs:F0}ms 后端={_model.ActiveProvider}");
                 _runRequested = false;
