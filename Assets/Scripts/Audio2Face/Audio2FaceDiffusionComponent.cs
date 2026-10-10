@@ -34,32 +34,6 @@ namespace Audio2Face
                  "关闭会让静音时仍有恒定偏置权重，容易表现为无语音关联的挤眉微张。")]
         public bool CalibrateRestPoseOnStart = true;
 
-        [Header("骨骼驱动（仅限有独立下颌骨的角色）")]
-        [Tooltip("下颌骨。jaw 段解出的刚体变换会转成「绕轴角度 + 位移」，牙齿挂在骨骼上随下巴刚体运动。\n" +
-                 "仅当模型有独立下颌骨时才填（如多骨 rig）。\n" +
-                 "mark_arkit_v3 这类「单骨 rig + 牙齿靠 blendshape」的头部模型【不要填】，\n" +
-                 "它的下牙张合由 c_bottomDenture_hi 的 jawOpen blendshape 驱动（见下方 LowerTeethJawOpenGain）。")]
-        public Transform JawBone;
-        [Tooltip("下颌旋转轴（骨骼局部空间）。多数角色是 X 轴；转反了把 JawAngleSign 取 -1")]
-        public Vector3 JawRotationAxis = new Vector3(1f, 0f, 0f);
-        public float JawAngleSign = 1f;
-        [Tooltip("下颌旋转的放大倍数。A2F 解出的下颌角是给「下牙床」用的，实测峰值只有 3~4°，\n" +
-                 "直接套到下颌骨上几乎看不出来。设 3 左右（≈10~12°）比较接近真人口语开合。")]
-        public float JawAngleGain = 3f;
-        [Tooltip("是否用 A2F 解出的旋转轴（而不是上面的固定轴）。旋转看着怪就关掉，用固定轴。")]
-        public bool UseFittedJawAxis = true;
-        [Tooltip("下颌位移方向（Unity 局部空间）。A2F 的 Y 是高度轴，默认同向。\n" +
-                 "这里用的是「下颌标记点质心的真实位移」，不是 4x4 里的平移（那个含绕模型原点的杠杆臂，\n" +
-                 "量级大十倍，会把下颌整个推出去）。")]
-        public Vector3 JawTranslationAxis = new Vector3(0f, 1f, 0f);
-        [Tooltip("A2F 位移单位 → Unity 世界单位的缩放。A2F 用厘米量级，Unity 角色按米建模时填 0.01")]
-        public float JawTranslationScale = 0.01f;
-
-        [Tooltip("左右眼球骨骼。eyes 段（4 维）+ saccade 微跳视会转成欧拉角（度）")]
-        public Transform LeftEyeBone;
-        public Transform RightEyeBone;
-        public float EyeRotationScale = 1f;
-
         [Header("事件")]
         public UnityEngine.Events.UnityEvent<float[]> OnFrameApplied;
 
@@ -111,13 +85,6 @@ namespace Audio2Face
         private AudioClip _micClip;
         private int _micReadPos;
         private readonly float[] _micBuffer = new float[4096];
-
-        // 骨骼驱动：jaw 刚体变换 + 左右眼欧拉角（都来自 SDK 的非 blendshape 输出）
-        private Quaternion _jawInitRot = Quaternion.identity;
-        private Vector3 _jawInitPos = Vector3.zero;
-        private Quaternion _leftEyeInitRot = Quaternion.identity;
-        private Quaternion _rightEyeInitRot = Quaternion.identity;
-        private float _lastJawDrop;
 
         // ---- 唇缝开合度量 ----
         // 「嘴巴到底张没张」不能靠 jawOpen 权重判断：权重是求解器在 Mark 模板上的分解结果，
@@ -340,14 +307,6 @@ namespace Audio2Face
                 if (UseManualEmotion) ApplyManualEmotion();
             }
 
-            if (JawBone != null)
-            {
-                _jawInitRot = JawBone.localRotation;
-                _jawInitPos = JawBone.localPosition;
-            }
-            if (LeftEyeBone != null) _leftEyeInitRot = LeftEyeBone.localRotation;
-            if (RightEyeBone != null) _rightEyeInitRot = RightEyeBone.localRotation;
-
             if (CalibrateRestPoseOnStart) CalibrateRestPose();
 
             if (AutoStartMicrophone) StartMicrophone();
@@ -549,41 +508,6 @@ namespace Audio2Face
                         b.renderer.SetBlendShapeWeight(bi, Mathf.Clamp(frame[tongueBase + i] * Strength, 0f, 1f) * 100f);
                     }
                 }
-            }
-
-            // jaw / eyes：骨骼驱动。这两段在 SDK 里就不走 blendshape，
-            // 缺了它们牙齿不会动、眼睛会死盯前方。
-            if (_pipeline != null)
-            {
-                int jb = _pipeline.JawChannelOffset;
-
-                if (JawBone != null && jb + Audio2FaceDiffusionPipeline.JawChannelCount <= frame.Length)
-                {
-                    // 角度 × 增益 × 方向。轴默认用 A2F 拟合出来的（更贴合它的坐标系），
-                    // 看着别扭就关掉 UseFittedJawAxis 用固定轴。
-                    Vector3 axis = JawRotationAxis;
-                    if (UseFittedJawAxis)
-                    {
-                        var fa = new Vector3(frame[jb + 1], frame[jb + 2], frame[jb + 3]);
-                        if (fa.sqrMagnitude > 1e-6f) axis = fa.normalized;
-                    }
-                    JawBone.localRotation = _jawInitRot *
-                        Quaternion.AngleAxis(frame[jb] * JawAngleGain * JawAngleSign, axis);
-
-                    // 质心真实位移（jb+4..6），不是 4x4 的平移
-                    float drop = -frame[jb + 5];              // A2F 的 Y 是高度轴，张嘴是负方向
-                    JawBone.localPosition = _jawInitPos + JawTranslationAxis * (drop * JawTranslationScale);
-                    _lastJawDrop = drop;
-                }
-
-                int eb = jb + Audio2FaceDiffusionPipeline.JawChannelCount;
-                if (RightEyeBone != null && eb + 2 <= frame.Length)
-                    RightEyeBone.localRotation = _rightEyeInitRot *
-                        Quaternion.Euler(frame[eb] * EyeRotationScale, frame[eb + 1] * EyeRotationScale, 0f);
-
-                if (LeftEyeBone != null && eb + 4 <= frame.Length)
-                    LeftEyeBone.localRotation = _leftEyeInitRot *
-                        Quaternion.Euler(frame[eb + 2] * EyeRotationScale, frame[eb + 3] * EyeRotationScale, 0f);
             }
 
             MeasureMouthAperture(frame);
@@ -948,8 +872,7 @@ namespace Audio2Face
                 Debug.Log($"[A2F唇缝] 最大张口那一帧的成因：jawOpen={_apJaw * pct:F2}% " +
                           $"唇分开(UpperUp/LowerDown)={_apLipOpen * pct:F2}% " +
                           $"闭唇组={_apSeal * pct:F2}% 其它={_apOther * pct:F2}% " +
-                          $"(该帧 jawOpen 权重={_apJawW:F2}) " +
-                          $"| 下颌={(JawBone != null ? $"下降峰值={_lastJawDrop:F3}" : "未绑定骨骼")}");
+                          $"(该帧 jawOpen 权重={_apJawW:F2})");
             }
             _apertureMin = float.MaxValue;
             _apertureMax = float.MinValue;

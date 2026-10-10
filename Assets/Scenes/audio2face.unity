@@ -228,16 +228,6 @@ MonoBehaviour:
   Strength: 1
   PlayAudioWhileProcessing: 1
   CalibrateRestPoseOnStart: 1
-  JawBone: {fileID: 0}
-  JawRotationAxis: {x: 1, y: 0, z: 0}
-  JawAngleSign: 1
-  JawAngleGain: 3
-  UseFittedJawAxis: 1
-  JawTranslationAxis: {x: 0, y: 1, z: 0}
-  JawTranslationScale: 0.01
-  LeftEyeBone: {fileID: 0}
-  RightEyeBone: {fileID: 0}
-  EyeRotationScale: 1
   OnFrameApplied:
     m_PersistentCalls:
       m_Calls: []
@@ -730,6 +720,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5065650383780397243, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: -4601765303294662194, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
       propertyPath: m_Enabled
       value: 1
@@ -768,6 +762,18 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2166325015065642637, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
       propertyPath: 'm_BlendShapeWeights.Array.data[52]'
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2166325015065642637, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
+      propertyPath: 'm_BlendShapeWeights.Array.data[53]'
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2166325015065642637, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
+      propertyPath: 'm_BlendShapeWeights.Array.data[54]'
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2166325015065642637, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
+      propertyPath: 'm_BlendShapeWeights.Array.data[55]'
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7416700905581477156, guid: 0f1d718e1c52f82499096b03e23f5415, type: 3}
