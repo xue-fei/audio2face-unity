@@ -33,6 +33,18 @@
 - **`Tick()` 触发条件必须是「新」窗口右端推满**（`ringTotal >= consumedUntil + stride`）。用旧游标判断却按新游标取窗口的话，尾部最多 8000 样本是没推进来的；ring 只有 2×窗口 → 读到上一圈（约 2s 前）的旧音频，其中超出右截断 4000 的部分会混进模型真正输出的 30 帧。指纹：push 行 `未消费` 绝对值 > 4000。修好后 `UnconsumedAudioSamples` 恒 ≥0（旧行为长期为负），背压 1 这才真正生效；代价是队列从 ~100 降到 ~50~75。窗口补零分左右两段：左（开播预热）/ 右（兜底，正常恒为 0，非零会打 Warning）。
 - **无 tongue 通道就停算舌头**：`Pipeline.SetTongueBound(false)`（Component 绑定统计为 0 时调）→ `SolveTongueNow` 门控 animator+BVLS（1.25ms/帧 ≈ 37ms/次）。**帧布局不变**（FrameStride 仍含 16 个舌头槽位，恒写 0），否则下游按 pose 名/下标取值的映射会整体错位。
 
+## 舌头增益的唯一来源（改舌头相关代码前必读）
+- 舌头 16 路权重增益**只**由 `BlendshapeSolver.Solve()` 第 5 步应用：`_multipliers`/`_offsets`
+  来自 `bs_tongue_config_*.json` 的 `bsWeightMultipliers`/`bsWeightOffsets`（Mark/Claire/James
+  三套一致：乘法器 2 1 1 1 3 1 1 1 2 1 1 1 1 2 1 1，第 9 路偏移 0.2）。这是**唯一**合法来源。
+- 2026-10-13 修过重复应用 bug：`Audio2FaceDiffusionPipeline.ShapeTongue()` 曾用**完全相同**的
+  硬编码数组再套一遍 → 舌头幅度平方级放大（tipUp×4、rollUp×9、down 偏移叠加到 0.4）。已删除
+  `ShapeTongue` 调用/方法/`TongueGain*` 数组/`_tongueGainIdx` 字段。新代码**不要再**在
+  pipeline 里手动乘舌头增益——要改增益去改 json。
+- `applyOfficialTongueGains` 开关目前是死配置项（代码不再读取）；要恢复语义
+  （false=回到求解器原始解）就给 `BlendshapeSolver` 加 `NeutralizeWeightGains()` 并在
+  `!applyOfficialTongueGains` 时调用。
+
 ## 探针 / 日志约定
 - `[A2F实测]`（BakeMesh 量真实唇缝）是「嘴张没张」的终局证据；静息基准 ≈1.19% 网格高，说话上限应到 2~6%。`mesh.vertices` 在无 Read/Write 时返回空数组不抛异常——量顶点一律用 BakeMesh / GetBlendShapeFrameVertices。
 - 唇缝探针用 v4（逐 pose 打满烘 BakeMesh 量质心距离系数），别退回投影/符号法（v1~v3 全错）。

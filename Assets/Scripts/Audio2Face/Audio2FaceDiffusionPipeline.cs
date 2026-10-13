@@ -110,27 +110,6 @@ namespace Audio2Face
         private int[] _lipSealIdx = new int[0];
         private int[] _lipOpenIdx = new int[0];
 
-        // Maya-ACE 官方场景 A2FAnimationPlayer 节点的 .bstm / .bsto —— 16 个 tongue pose 的
-        // 乘法器与偏移。按 pose 名匹配，不依赖 npz 下标顺序。
-        // 取值来自 Maya-ACE/sample_project/scenes/mark_v3_fullface.ma 第 320210~320211 行：
-        //   setAttr -s 16 ".bstm[0:15]"  2 1 1 1 3 1 1 1 2 1 1 1 1 2 1 1;
-        //   setAttr -s 16 ".bsto[9:15]"  0.2 0 0 0 0 0 0;
-        private static readonly string[] TongueGainPoses =
-        {
-            "tongueTipUp", "tongueTipDown", "tongueTipLeft", "tongueTipRight",
-            "tongueRollUp", "tongueRollDown", "tongueRollLeft", "tongueRollRight",
-            "tongueUp", "tongueDown", "tongueLeft", "tongueRight",
-            "tongueIn", "tongueStretch", "tongueWide", "tongueNarrow"
-        };
-        private static readonly float[] TongueGainMul =
-        {
-            2f, 1f, 1f, 1f, 3f, 1f, 1f, 1f, 2f, 1f, 1f, 1f, 1f, 2f, 1f, 1f
-        };
-        private static readonly float[] TongueGainOff =
-        {
-            0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0.2f, 0f, 0f, 0f, 0f, 0f, 0f
-        };
-        private int[] _tongueGainIdx = new int[0];
         private int[] _mouthDbgIdx = new int[0];
         private readonly string[] _mouthDbgNames =
         {
@@ -443,14 +422,6 @@ namespace Audio2Face
             for (int i = 0; i < _mouthDbgNames.Length; i++)
                 _mouthDbgIdx[i] = PoseIndex(n, _mouthDbgNames[i]);
             _mouthDbgMax = new float[_mouthDbgNames.Length];
-
-            if (_config.applyOfficialTongueGains && _tongueSolver != null && _tongueSolver.IsReady)
-            {
-                var tn = _tongueSolver.PoseNames;
-                _tongueGainIdx = new int[TongueGainPoses.Length];
-                for (int i = 0; i < TongueGainPoses.Length; i++)
-                    _tongueGainIdx[i] = PoseIndex(tn, TongueGainPoses[i]);
-            }
         }
 
         private static int PoseIndex(string[] names, string pose)
@@ -525,23 +496,6 @@ namespace Audio2Face
                     float v = w[k] + add;
                     w[k] = v > 1f ? 1f : v;
                 }
-            }
-        }
-
-        /// <summary>
-        /// 舌头权重整形：套 Maya 官方场景的 .bstm / .bsto（16 路乘法器 + 偏移）。
-        /// w = w × mul + off，clamp 到 [0,1]。
-        /// </summary>
-        private void ShapeTongue(float[] w)
-        {
-            if (w == null || _tongueGainIdx == null || _tongueGainIdx.Length == 0) return;
-
-            for (int i = 0; i < _tongueGainIdx.Length; i++)
-            {
-                int k = _tongueGainIdx[i];
-                if (k < 0 || k >= w.Length) continue;
-                float v = w[k] * TongueGainMul[i] + TongueGainOff[i];
-                w[k] = v < 0f ? 0f : (v > 1f ? 1f : v);
             }
         }
 
@@ -818,8 +772,9 @@ namespace Audio2Face
                     }
 
                     // 开合整形 + 嘴部诊断（必须放在基线减法之后、入队之前）
+                    // 舌头增益不再在这里套：BlendshapeSolver.Solve() 第 5 步已按
+                    // bs_tongue_config_*.json 的 bsWeightMultipliers / bsWeightOffsets 应用过一遍。
                     ShapeMouthOpen(skin);
-                    ShapeTongue(tongue);
                     TraceMouthChannels(skin, tongue);
 
                     // 诊断：打印前 20 次推理的基线减法后权重
