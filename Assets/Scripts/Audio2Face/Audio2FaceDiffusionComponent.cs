@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using Audio2Emotion;
@@ -102,13 +102,11 @@ namespace Audio2Face
         private int[] _lipUpperIdx;        // 上唇顶点（mouthUpperUpLeft 形变集中区）
         private int[] _lipLowerIdx;        // 下唇顶点（mouthLowerDownLeft 形变集中区）
         private const int LipProbeVertices = 60;   // 每组最多取多少个顶点
-        private Vector3 _lipNormal;        // 唇缝张开方向（静息上唇质心 − 下唇质心，已归一化）
         private float _lipRestGap;         // 静息时上下唇质心距离（= 唇厚，aperture 的零点）
         /// <summary>自检时把「最大张口应该到多少」作为目标（% 网格高）。正常说话 2~6%。</summary>
         private const float LipOpenTargetPercent = 3.0f;
         private float _lipRefHeight = 1f;  // 归一化基准：网格包围盒高度
         private bool _lipProbeReady;
-        private int _lipRegionCount;
         private int _iJawOpenCoeff = -1;
         private byte[] _lipGroup;          // 0=其它 1=jawOpen 2=唇分开组 3=闭唇组
         private static readonly string[] LipOpenPoses =
@@ -630,8 +628,6 @@ namespace Audio2Face
                 float g0 = Gap();
                 _lipRestGap = g0;
                 _lipRefHeight = _bakeMesh.bounds.size.y > 1e-6f ? _bakeMesh.bounds.size.y : 1f;
-                _lipNormal = Vector3.up;      // v4 起系数是实测标量，不再需要投影方向
-                _lipRegionCount = _lipUpperIdx.Length + _lipLowerIdx.Length;
 
                 int jp = Array.IndexOf(poseNames, "jawOpen");
                 int js = (jp >= 0 && jp < b.skin.Length) ? b.skin[jp] : -1;

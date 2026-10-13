@@ -154,12 +154,6 @@ namespace Audio2Face
         }
 
         /// <summary>
-        /// 上一次解的相对残差 ||target - D*x|| / ||target||。
-        /// 接近 0 = 这帧几何确实能用 blendshape 线性组合表示；
-        /// 接近 1 = 输入根本不是人脸形变（量级或语义弄错了，比如多减了一次 neutral）。
-        /// </summary>
-
-        /// <summary>
         /// 纯恒等检验开关：true 时 BVLS 用不带任何正则的 A = D^T·D。
         /// 把某个 pose 的 delta 原样喂进去应当解出该 pose = 1.000、残差 ≈ 0。
         /// 这一条只验证「掩码 + D^T·D + BVLS」；默认求解路径一定带正则，不能拿它当生产判据。
@@ -185,6 +179,11 @@ namespace Audio2Face
         /// <summary>对角正则项之和（L2*10*sf + Temporal*100*sf），即单 pose 自解时被压扁的分母增量。</summary>
         public float DiagonalRegularization => _diagReg;
 
+        /// <summary>
+        /// 上一次解的相对残差 ||target - D*x|| / ||target||。
+        /// 接近 0 = 这帧几何确实能用 blendshape 线性组合表示；
+        /// 接近 1 = 输入根本不是人脸形变（量级或语义弄错了，比如多减了一次 neutral）。
+        /// </summary>
         public float ComputeRelativeResidual()
         {
             int k = _b != null ? _b.Length : 0;

@@ -470,11 +470,6 @@ namespace Audio2Face
             _alphaDt = dt;
         }
 
-        /// <summary>把 prediction 的 skin 段直接当 delta 输出（不跑 animator），用于开关对比。</summary>
-        public static void Passthrough(float[] deltas, int srcOffset, float[] output, int dstOffset, int size)
-        {
-            Array.Copy(deltas, srcOffset, output, dstOffset, size);
-        }
     }
 
     /// <summary>
